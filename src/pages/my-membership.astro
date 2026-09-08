@@ -234,7 +234,13 @@ import { isConfigured } from '../lib/supabase';
           say('Payment received. Activating your membership…');
           const { data, error } = await supabase!.functions.invoke('verify-payment', { body: resp });
           payBtn.disabled = false;
-          if (error) return say('Paid, but we could not confirm it yet. It will appear within a few minutes. If not, message us with payment ID ' + resp.razorpay_payment_id, true);
+          if (error) {
+            // 422: the payment can never be recorded automatically (for example a
+            // wrong amount); it will not "appear later", the studio must add it.
+            const status = (error as any)?.context?.status;
+            if (status === 422) return say('Paid, but this payment needs the studio to check it. Message us with payment ID ' + resp.razorpay_payment_id, true);
+            return say('Paid, but we could not confirm it yet. It will appear within a few minutes. If not, message us with payment ID ' + resp.razorpay_payment_id, true);
+          }
           if (data?.ok) { say(`Done. Your ${data.plan} membership is active.`); await render(); }
           else if (data?.pending) say('Payment is being confirmed by the bank. Refresh this page in a minute.');
           else say('Paid, but something went wrong recording it. Message us with payment ID ' + resp.razorpay_payment_id, true);
