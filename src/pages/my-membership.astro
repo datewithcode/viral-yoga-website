@@ -108,10 +108,14 @@ import { isConfigured } from '../lib/supabase';
       const { error } = await supabase!.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: redirect } });
       msg.hidden = false;
       if (error) { msg.textContent = 'Could not send the email: ' + error.message; return; }
-      msg.textContent = `Email sent to ${email}. Type the code from it below, or open its link on this device. It works for one hour.`;
       pendingEmail = email;
-      $('code-form').hidden = false;
-      ($('code-input') as HTMLInputElement).focus();
+      if (site.pricing.signInEmailHasCode) {
+        msg.textContent = `Email sent to ${email}. Type the code from it below, or open its link on this device. It works for one hour.`;
+        $('code-form').hidden = false;
+        ($('code-input') as HTMLInputElement).focus();
+      } else {
+        msg.textContent = `Email sent to ${email}. Open the link in it on this same device (phone or computer) to sign in here. It works for one hour.`;
+      }
     });
 
     // Cross-device sign-in: the link signs in the device that opens it, so the

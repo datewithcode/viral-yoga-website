@@ -133,8 +133,8 @@ If the online fee is passed to the student, they pay: 1 month ₹2,047, 3 months
 
 ## 9. Known limits to remember
 
-- **Sign-in link is device-bound.** The link signs in only the device that opens it. Requesting on a laptop and opening the email on a phone signs in the phone, not the laptop. There is no cross-device sync. After step 3 the email also carries a code to type on the device you are using; until then, open the link on the same device.
-- **Until step 3, sign-in emails reach only supabase.root@gmail.com** and only a few per hour. The email template cannot be edited on the free tier without a custom email provider.
+- **Sign-in link is device-bound.** The link signs in only the device that opens it. Requesting on a laptop and opening the email on a phone signs in the phone, not the laptop. There is no cross-device sync. After step 3 the email also carries a code to type on the device you are using; until then the page asks you to open the link on the same device.
+- **Until step 3, sign-in emails come from Supabase's built-in mailer:** only a few per hour, fixed wording, link only (no code). They do reach any address, so sign-in can be tested with a few real people, slowly.
 - Supabase allows 30 sign-in emails per hour by default. This must be raised in the dashboard before launch, or a busy launch day fails.
 - Free Supabase projects pause after 7 days without activity. Pro never pauses.
 - Imported memberships record today's plan price, not what was paid back then.
