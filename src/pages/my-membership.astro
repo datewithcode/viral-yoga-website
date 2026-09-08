@@ -3,17 +3,17 @@ import Base from '../layouts/Base.astro';
 import { site } from '../data/site';
 import { isConfigured } from '../lib/supabase';
 ---
-<Base title="My membership" description="Buy a membership or check your days remaining.">
+<Base title="Membership" description="Join Viral Yoga or check your days remaining.">
   <section class="section">
     <div class="container-site max-w-xl">
-      <h1 class="text-h2">My membership</h1>
+      <h1 id="page-title" class="text-h2">Membership</h1>
 
       {!isConfigured && (
         <p class="mt-4 text-ink-soft">Online membership is not set up yet. Please pay by UPI on the <a href="/#pricing" class="underline underline-offset-4">pricing section</a> or contact the studio.</p>
       )}
 
       <div id="ask" hidden>
-        <p id="ask-intro" class="mt-4 text-ink-soft">Sign in with your email to buy a membership or see how many days you have left. No password: we email you a link.</p>
+        <p id="ask-intro" class="mt-4 text-ink-soft">New here? Sign in with your email to buy a membership. Already a member? The same sign-in shows your days remaining. No password: we email you a link.</p>
         <form id="otp-form" class="mt-6 flex flex-col gap-3 sm:flex-row">
           <input id="otp-email" type="email" required autocomplete="email" placeholder="you@example.com" class="field" />
           <button type="submit" class="btn-primary shrink-0">Send sign-in link</button>
@@ -81,7 +81,10 @@ import { isConfigured } from '../lib/supabase';
   const $ = (id: string) => document.getElementById(id)!;
 
   if (supabase) {
-    const show = (id: string) => { for (const s of ['ask', 'checking', 'result']) $(s).hidden = s !== id; };
+    const show = (id: string) => {
+      for (const s of ['ask', 'checking', 'result']) $(s).hidden = s !== id;
+      $('page-title').textContent = id === 'result' ? 'Your membership' : `Join ${site.name}`;
+    };
     const wantedPlan = new URLSearchParams(location.search).get('plan');
     if (wantedPlan && site.pricing.plans.some((p) => p.name === wantedPlan)) {
       $('ask-intro').textContent = `You chose the ${wantedPlan} plan. Sign in with your email to pay. No password: we email you a link.`;
