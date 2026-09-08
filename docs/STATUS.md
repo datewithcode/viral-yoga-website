@@ -67,7 +67,8 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 
 ### Accounts, imports, and who sees what
 
-- There is no separate signup. Signing in with an email link is the whole account.
+- There is no separate signup. Signing in with an email link is the whole account: the first sign-in with a new email creates the account. Once online payment is on, the header button reads "Sign in / Register" so new visitors know it is the same door.
+- At the desk, a new online member is recognised by name and phone in the admin Active list, and by the "Hi, <name>" page on their own phone. No photo ID check, same as a UPI screenshot today.
 - Importing members creates their member records and memberships, not accounts. Nothing is required from them.
 - When an imported member signs in with the **same email that was in the spreadsheet**, their membership shows immediately.
 - If the spreadsheet had no email for them, they see "no membership yet" until the instructor adds their email on the admin page. Then it shows.
@@ -80,7 +81,7 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 - All content and photos are placeholders.
 - Real Razorpay has never been called. Every payment test used a stand-in that behaves like Razorpay. The first real test-mode payment is still to be done.
 - Not tested: opening the UPI links in a real UPI app; the contact form's fallback to Netlify if Supabase is unreachable; the admin Edit button; real email delivery through Resend.
-- Not built (later): automatic WhatsApp reminders through Meta's API; two-factor login for the owner.
+- Not built (later): automatic WhatsApp reminders through Meta's API; two-factor login for the owner; a member number and QR code on the membership page that the instructor scans to open that member in admin (identity check at the desk).
 
 ## 5. What we need from you
 
@@ -163,6 +164,7 @@ If the online fee is passed to the student, they pay: 1 month ₹2,047, 3 months
 | Domain `viralyoga.in` | Step 3 | About ₹500 to ₹900 a year |
 | Razorpay fees | Step 3 onward | About 2.36% per online payment, or passed to the student |
 | Supabase Pro | Step 6, launch | About ₹2,100 a month |
+| Member QR code for desk check-in | Future | Free, small build |
 | Automatic WhatsApp reminders | Future | About ₹0.12 per message plus setup, or a provider at ₹1,000 to ₹2,500 a month |
 
 Everything else (Netlify, Supabase free tier, Resend at this volume, tap-to-send reminders) is free.
