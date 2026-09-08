@@ -88,7 +88,9 @@ export default {
     if (!/^[0-9]{10,15}$/.test(phone)) return json({ error: "Please enter a valid phone number" }, 400);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "That email does not look right" }, 400);
 
-    const { data, error } = await ctx.supabaseAdmin.rpc("submit_enquiry", {
+    // deno-lint-ignore no-explicit-any
+    const db: any = ctx.supabaseAdmin;
+    const { data, error }: { data: { ok?: boolean; reason?: string } | null; error: { message: string } | null } = await db.rpc("submit_enquiry", {
       p_name: name,
       p_phone: phone,
       p_email: email,

@@ -35,7 +35,9 @@ export default {
       return json({ error: "Body is not JSON" }, 400);
     }
 
-    const db = ctx.supabaseAdmin;
+    // Untyped client: rows are shaped by the select strings below.
+    // deno-lint-ignore no-explicit-any
+    const db: any = ctx.supabaseAdmin;
     const eventName: string = evt?.event ?? "unknown";
     const eventId = req.headers.get("x-razorpay-event-id");
 

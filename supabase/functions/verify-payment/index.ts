@@ -36,7 +36,9 @@ export default {
     }
 
     // 2. The order must be one we created for this very account.
-    const db = ctx.supabaseAdmin;
+    // Untyped client: rows are shaped by the select strings below.
+    // deno-lint-ignore no-explicit-any
+    const db: any = ctx.supabaseAdmin;
     const { data: order, error: orderError } = await db
       .from("payment_orders")
       .select("id, amount_paise, member:members(user_id)")

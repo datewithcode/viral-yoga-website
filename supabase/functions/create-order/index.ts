@@ -49,7 +49,9 @@ export default {
       return json({ error: (e as Error).message }, 500);
     }
 
-    const db = ctx.supabaseAdmin;
+    // Untyped client: rows are shaped by the select strings below.
+    // deno-lint-ignore no-explicit-any
+    const db: any = ctx.supabaseAdmin;
     const cols = "id, name, phone, email, user_id";
     const fail = (e: { message: string }) => json({ error: `Database error: ${e.message}` }, 500);
 
