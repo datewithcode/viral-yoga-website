@@ -150,9 +150,15 @@ What it gives you:
    where email = 'you@example.com';
    ```
    Sign out and in again if you were already signed in.
-5. **Allow the redirect URLs** for the student sign-in link: Authentication > URL Configuration. Site URL = your live site. Add `https://YOUR-SITE/my-membership/` and `http://localhost:4321/my-membership/` to Redirect URLs.
-6. **Website keys.** Copy `.env.example` to `.env`, fill in the project URL and the publishable key from Project Settings > API Keys, then `npm run build` and deploy `dist` as usual.
-7. **Student emails need a mail provider, and this is required for online payment.** Students must sign in by email before they can buy, and Supabase's built-in email sends only 2 messages an hour and only to your own team's addresses. Connect an SMTP provider under Authentication > SMTP Settings before launch. Resend and Brevo both have free tiers that are plenty. The admin login is not affected.
+5. **Sign-in email must carry a code.** Authentication > Email Templates > Magic Link. Make sure the body includes the code as well as the link, for example:
+   ```html
+   <h2>Sign in to Viral Yoga</h2>
+   <p>Your sign-in code is <strong>{{ .Token }}</strong>. Type it on the page you were on, or open this link on this device: <a href="{{ .ConfirmationURL }}">Sign in</a>. Valid for one hour.</p>
+   ```
+   The link only signs in the device that opens it; the code signs in whichever device the student is using.
+6. **Allow the redirect URLs** for the student sign-in link: Authentication > URL Configuration. Site URL = your live site. Add `https://YOUR-SITE/my-membership/` and `http://localhost:4321/my-membership/` to Redirect URLs.
+7. **Website keys.** Copy `.env.example` to `.env`, fill in the project URL and the publishable key from Project Settings > API Keys, then `npm run build` and deploy `dist` as usual.
+8. **Student emails need a mail provider, and this is required for online payment.** Students must sign in by email before they can buy, and Supabase's built-in email sends only 2 messages an hour and only to your own team's addresses. Connect an SMTP provider under Authentication > SMTP Settings before launch. Resend and Brevo both have free tiers that are plenty. The admin login is not affected.
 
 ### Things to know
 
