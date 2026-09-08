@@ -1,5 +1,7 @@
 ---
 import { site } from '../data/site';
+// Before online payment is on, only existing members can do anything after signing in.
+const signinLabel = site.pricing.onlinePaymentsEnabled ? 'Sign in / Register' : 'Sign in';
 const links = [
   { href: '/#classes', label: 'Classes' },
   { href: '/#schedule', label: 'Schedule' },
@@ -24,7 +26,7 @@ const links = [
       {links.map((l) => (
         <a href={l.href} class="text-[0.95rem] text-ink-soft hover:text-ink">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost !py-2.5 !px-5 text-sm" data-signin>Sign in</a>
+      <a href="/my-membership/" class="btn-ghost !py-2.5 !px-5 text-sm" data-signin>{signinLabel}</a>
       <a href="/#contact" class="btn-primary !py-2.5 !px-5 text-sm">{site.copy.heroPrimaryButton}</a>
     </nav>
 
@@ -45,7 +47,7 @@ const links = [
       {links.map((l) => (
         <a href={l.href} class="py-3 text-lg text-ink border-b border-ink/5 last:border-0">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost mt-4" data-signin>Sign in</a>
+      <a href="/my-membership/" class="btn-ghost mt-4" data-signin>{signinLabel}</a>
       <a href="/#contact" class="btn-primary mt-3 mb-2">{site.copy.heroPrimaryButton}</a>
     </div>
   </nav>
