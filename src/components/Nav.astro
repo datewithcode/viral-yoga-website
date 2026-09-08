@@ -25,7 +25,7 @@ const links = [
       {links.map((l) => (
         <a href={l.href} class="text-[0.95rem] text-ink-soft hover:text-ink">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost !py-2.5 !px-5 text-sm">Sign in</a>
+      <a href="/my-membership/" class="btn-ghost !py-2.5 !px-5 text-sm" data-signin>Sign in</a>
       <a href="/#contact" class="btn-primary !py-2.5 !px-5 text-sm">{site.copy.heroPrimaryButton}</a>
     </nav>
 
@@ -46,13 +46,28 @@ const links = [
       {links.map((l) => (
         <a href={l.href} class="py-3 text-lg text-ink border-b border-ink/5 last:border-0">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost mt-4">Sign in</a>
+      <a href="/my-membership/" class="btn-ghost mt-4" data-signin>Sign in</a>
       <a href="/#contact" class="btn-primary mt-3 mb-2">{site.copy.heroPrimaryButton}</a>
     </div>
   </nav>
 </header>
 
 <script>
+  // Show the signed-in state in the header without loading the Supabase library
+  // on every page: the session is read from the storage key supabase-js uses.
+  try {
+    const url = import.meta.env.PUBLIC_SUPABASE_URL as string | undefined;
+    const ref = url ? new URL(url).hostname.split('.')[0] : '';
+    const raw = ref ? localStorage.getItem(`sb-${ref}-auth-token`) : null;
+    const session = raw ? JSON.parse(raw) : null;
+    const valid = session?.access_token && (!session.expires_at || session.expires_at * 1000 > Date.now());
+    if (valid) {
+      const name = (localStorage.getItem('vy-member-name') || '').trim().split(' ')[0];
+      const label = name ? `Hi, ${name}` : 'Your membership';
+      document.querySelectorAll<HTMLAnchorElement>('[data-signin]').forEach((a) => { a.textContent = label; a.title = 'Your membership'; });
+    }
+  } catch {}
+
   const toggle = document.getElementById('nav-toggle');
   const menu = document.getElementById('nav-mobile');
   if (toggle && menu) {
