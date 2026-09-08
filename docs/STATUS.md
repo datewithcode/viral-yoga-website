@@ -11,7 +11,7 @@ A website for Viral Yoga's two studios in Anjar and Adipur. Students see classes
 
 ## 2. Where we stand today
 
-Everything is built and tested. The public website is live with placeholder content; the membership and admin pages wait for the Supabase step.
+Everything is built and tested. The public website is live with placeholder content. The Supabase backend (database, security rules, four functions) is deployed to the Viral-Yoga project in Mumbai; online payment stays switched off until the Razorpay step.
 
 | Feature | Built | Tested | Live |
 |---|---|---|---|
@@ -23,12 +23,13 @@ Everything is built and tested. The public website is live with placeholder cont
 | Admin: add a UPI or cash payment by hand | Yes | Yes | No |
 | Admin: one-tap WhatsApp renewal reminder, logged so you see who was reminded | Yes | Yes | No |
 | Admin: import your existing member list from a spreadsheet | Yes | Yes | No |
-| Admin: enquiries from the contact form, with WhatsApp reply and Done | Yes | Yes | No |
+| Admin: enquiries from the contact form, with WhatsApp reply and Done | Yes | Yes | Yes |
 | Optional online fee passed to the student (currently off) | Yes | Yes | No |
-| Backend: database, security rules, four server functions | Yes | Yes, including security cases | No |
+| Backend: database, security rules, four server functions | Yes | Yes, including security cases | Yes, Supabase project Viral-Yoga (Mumbai) |
 | Real Razorpay account | Not started | No | No |
 | Deployment: Netlify | Yes | Yes | Yes, auto-deploys from GitHub `main` |
-| Deployment: Supabase project, email provider | Not started | No | No |
+| Deployment: Supabase project | Yes | Yes | Yes, free tier for now |
+| Email provider (Resend) | Not started | No | No |
 
 All names, phone numbers, addresses, timetable entries, testimonials and photos on the site are placeholders. The studio name is already set to Viral Yoga.
 
@@ -62,7 +63,7 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 
 ## 4. What is not done
 
-- Backend not deployed. No Supabase project, no Razorpay account, no email provider. The public site is on Netlify.
+- No Razorpay account and no email provider yet. Online payment is switched off on the site until Razorpay is connected.
 - All content and photos are placeholders.
 - Real Razorpay has never been called. Every payment test used a stand-in that behaves like Razorpay. The first real test-mode payment is still to be done.
 - Not tested: opening the UPI links in a real UPI app; the contact form's fallback to Netlify if Supabase is unreachable; the admin Edit button; real email delivery through Resend.

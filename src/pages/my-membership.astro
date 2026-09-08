@@ -13,7 +13,9 @@ import { isConfigured } from '../lib/supabase';
       )}
 
       <div id="ask" hidden>
-        <p id="ask-intro" class="mt-4 text-ink-soft">New here? Sign in with your email to buy a membership. Already a member? The same sign-in shows your days remaining. No password: we email you a link.</p>
+        <p id="ask-intro" class="mt-4 text-ink-soft">{site.pricing.onlinePaymentsEnabled
+          ? 'New here? Sign in with your email to buy a membership. Already a member? The same sign-in shows your days remaining. No password: we email you a link.'
+          : 'Members: sign in with the email the studio has for you to see your plan and days remaining. No password: we email you a link.'}</p>
         <form id="otp-form" class="mt-6 flex flex-col gap-3 sm:flex-row">
           <input id="otp-email" type="email" required autocomplete="email" placeholder="you@example.com" class="field" />
           <button type="submit" class="btn-primary shrink-0">Send sign-in link</button>
@@ -32,11 +34,11 @@ import { isConfigured } from '../lib/supabase';
 
         <div id="cards" class="mt-6 space-y-4"></div>
         <p id="none" class="mt-4 text-ink-soft" hidden>
-          No membership yet on this account. Buy one below, or if you already paid with different details, message us on{' '}
+          No membership found for this email. If you are a member, or you paid with different details, message us on{' '}
           <a class="underline underline-offset-4" href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>.
         </p>
 
-        <div id="buy" class="mt-10 rounded-lg border border-ink/15 bg-sand/30 p-6">
+        <div id="buy" class="mt-10 rounded-lg border border-ink/15 bg-sand/30 p-6" hidden={!site.pricing.onlinePaymentsEnabled}>
           <h2 class="text-h3">Buy a membership</h2>
           <p class="mt-1 text-sm text-ink-soft">Pay by UPI, card or net banking. Your membership starts today and works at both studios.</p>
           <form id="buy-form" class="mt-5 grid gap-4 sm:grid-cols-2">
@@ -86,7 +88,7 @@ import { isConfigured } from '../lib/supabase';
       $('page-title').textContent = id === 'result' ? 'Your membership' : `Join ${site.name}`;
     };
     const wantedPlan = new URLSearchParams(location.search).get('plan');
-    if (wantedPlan && site.pricing.plans.some((p) => p.name === wantedPlan)) {
+    if (site.pricing.onlinePaymentsEnabled && wantedPlan && site.pricing.plans.some((p) => p.name === wantedPlan)) {
       $('ask-intro').textContent = `You chose the ${wantedPlan} plan. Sign in with your email to pay. No password: we email you a link.`;
       const radio = document.querySelector<HTMLInputElement>(`input[name="plan"][value="${wantedPlan}"]`);
       if (radio) radio.checked = true;

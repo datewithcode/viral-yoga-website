@@ -36,19 +36,25 @@ const plans = await Promise.all(
           <p class:list={['mt-2 text-sm', i === plans.length - 1 ? 'text-ink-soft' : 'text-chalk/65']}>{p.note}</p>
 
           <div class="mt-6 flex flex-1 flex-col gap-3">
-            <a
-              href={`/my-membership/?plan=${encodeURIComponent(p.name)}`}
-              class:list={[i === plans.length - 1 ? 'btn-primary' : 'btn-light']}
-            >Buy online</a>
+            {pricing.onlinePaymentsEnabled && (
+              <a
+                href={`/my-membership/?plan=${encodeURIComponent(p.name)}`}
+                class:list={[i === plans.length - 1 ? 'btn-primary' : 'btn-light']}
+              >Buy online</a>
+            )}
 
             <a
               href={p.link}
-              class:list={['md:hidden text-center text-sm underline underline-offset-4', i === plans.length - 1 ? 'text-ink-soft' : 'text-chalk/75']}
+              class:list={pricing.onlinePaymentsEnabled
+                ? ['md:hidden text-center text-sm underline underline-offset-4', i === plans.length - 1 ? 'text-ink-soft' : 'text-chalk/75']
+                : ['md:hidden', i === plans.length - 1 ? 'btn-primary' : 'btn-light']}
               data-upi-link
-            >Pay {inr(p.price)} by UPI instead</a>
+            >{pricing.onlinePaymentsEnabled ? `Pay ${inr(p.price)} by UPI instead` : `Pay ${inr(p.price)} by UPI`}</a>
 
             <details class="hidden md:block">
-              <summary class:list={['cursor-pointer list-none text-center text-sm underline underline-offset-4', i === plans.length - 1 ? 'text-ink-soft' : 'text-chalk/75']}>Pay {inr(p.price)} by UPI instead</summary>
+              <summary class:list={pricing.onlinePaymentsEnabled
+                ? ['cursor-pointer list-none text-center text-sm underline underline-offset-4', i === plans.length - 1 ? 'text-ink-soft' : 'text-chalk/75']
+                : ['cursor-pointer list-none', i === plans.length - 1 ? 'btn-primary' : 'btn-light']}>{pricing.onlinePaymentsEnabled ? `Pay ${inr(p.price)} by UPI instead` : `Pay ${inr(p.price)} by UPI`}</summary>
               <div class="mt-4 rounded-md bg-white p-3" set:html={p.qr} />
               <p class:list={['mt-2 text-xs', i === plans.length - 1 ? 'text-ink-soft' : 'text-chalk/65']}>
                 Scan with any UPI app, or pay {inr(p.price)} to <span class="select-all font-medium">{pricing.upiId}</span>, then{' '}
