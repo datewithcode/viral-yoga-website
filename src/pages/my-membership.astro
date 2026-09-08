@@ -38,6 +38,10 @@ import { isConfigured } from '../lib/supabase';
         <p class="mt-2 text-sm text-ink-soft">Signed in as <span id="who-email" class="font-medium text-ink"></span>. <button id="signout" class="underline underline-offset-4">Sign out</button></p>
 
         <div id="cards" class="mt-6 space-y-4"></div>
+        <p id="load-error" class="mt-4 text-madder" hidden>
+          We could not load your membership just now. Please reload the page, or message us on{' '}
+          <a class="underline underline-offset-4" href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>.
+        </p>
         <p id="none" class="mt-4 text-ink-soft" hidden>
           No membership found for this email. If you are a member, or you paid with different details, message us on{' '}
           <a class="underline underline-offset-4" href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>.
@@ -149,11 +153,15 @@ import { isConfigured } from '../lib/supabase';
       show('checking');
       $('who-email').textContent = session.user.email ?? '';
 
-      const [{ data: memberships }, { data: member }] = await Promise.all([
+      const [{ data: memberships, error: mError }, { data: member, error: pError }] = await Promise.all([
         supabase!.from('memberships').select('plan, amount_paise, starts_on, ends_on').order('ends_on', { ascending: false }),
         supabase!.from('members').select('name, phone').limit(1).maybeSingle(),
       ]);
       show('result');
+      const cards = $('cards');
+      // A failed query must not look like "no membership".
+      $('load-error').hidden = !(mError || pError);
+      if (mError || pError) { $('none').hidden = true; cards.innerHTML = ''; return; }
 
       try { localStorage.setItem('vy-member-name', member?.name || ''); } catch {}
       if (member) {
@@ -162,7 +170,6 @@ import { isConfigured } from '../lib/supabase';
         if (!phoneEl.value) phoneEl.value = member.phone ?? '';
       }
 
-      const cards = $('cards');
       if (!memberships?.length) { $('none').hidden = false; cards.innerHTML = ''; return; }
       $('none').hidden = true;
       cards.innerHTML = memberships.map((m: any, i: number) => {

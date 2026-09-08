@@ -4,7 +4,7 @@
 
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
-import { hmacSha256Hex, json, razorpayApi, recordPayment, timingSafeEqual } from "../_shared/payments.ts";
+import { PaymentRejected, hmacSha256Hex, json, razorpayApi, recordPayment, timingSafeEqual } from "../_shared/payments.ts";
 
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
@@ -37,11 +37,12 @@ export default {
 
     // 2. The order must be one we created for this very account.
     const db = ctx.supabaseAdmin;
-    const { data: order } = await db
+    const { data: order, error: orderError } = await db
       .from("payment_orders")
       .select("id, amount_paise, member:members(user_id)")
       .eq("razorpay_order_id", orderId)
       .maybeSingle();
+    if (orderError) return json({ error: `Database error: ${orderError.message}` }, 500);
     if (!order) return json({ error: "Unknown order" }, 404);
     if (order.member?.user_id !== userId) return json({ error: "This order belongs to a different account" }, 403);
 
@@ -59,7 +60,10 @@ export default {
       const result = await recordPayment(db, payment);
       return json({ ok: true, ...result });
     } catch (e) {
-      return json({ ok: false, error: e instanceof Error ? e.message : String(e) }, 500);
+      const message = e instanceof Error ? e.message : String(e);
+      // A rejected payment is the student's problem to raise with the studio;
+      // anything else is ours, and the webhook will retry it.
+      return json({ ok: false, error: message }, e instanceof PaymentRejected ? 422 : 500);
     }
   }),
 };

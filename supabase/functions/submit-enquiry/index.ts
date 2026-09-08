@@ -1,7 +1,9 @@
 // Receives the website contact form, stores the enquiry for the admin page,
 // and emails a copy to the studio. Public endpoint (auth: 'none'): the form is
-// filled by visitors with no account. Protection: honeypot, validation, and a
-// per-phone rate limit backed by the database.
+// filled by visitors with no account. Protection: honeypot, validation, and
+// rate limits enforced inside the database function submit_enquiry (per phone,
+// per IP address, and a global circuit breaker), so parallel requests cannot
+// slip past the check.
 //
 // Secrets (optional, email is skipped without them):
 //   RESEND_API_KEY, ENQUIRY_EMAIL_TO, ENQUIRY_EMAIL_FROM
@@ -19,6 +21,22 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...CORS } });
 
 const clip = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
+
+// Best effort: the client address as seen by the edge. Proxies can be spoofed
+// upstream, so this only tightens the per-phone limit; it never replaces it.
+function clientIp(req: Request): string | null {
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf) return cf.trim().slice(0, 64);
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim().slice(0, 64) || null;
+  return null;
+}
+
+const LIMIT_MESSAGES: Record<string, string> = {
+  phone: "Too many messages from this number. Please call or WhatsApp us instead.",
+  ip: "Too many messages from this connection. Please call or WhatsApp us instead.",
+  global: "We are receiving a lot of messages right now. Please WhatsApp us instead.",
+};
 
 async function emailCopy(e: { name: string; phone: string; email: string | null; studio: string; interest: string; message: string }) {
   const key = Deno.env.get("RESEND_API_KEY");
@@ -70,20 +88,17 @@ export default {
     if (!/^[0-9]{10,15}$/.test(phone)) return json({ error: "Please enter a valid phone number" }, 400);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "That email does not look right" }, 400);
 
-    const db = ctx.supabaseAdmin;
-
-    // Rate limits: 3 per phone per 10 minutes, and 20 in total per 10 minutes
-    // (a bot changing numbers must not be able to flood the admin page or the email quota).
-    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const [{ count: perPhone }, { count: total }] = await Promise.all([
-      db.from("enquiries").select("id", { count: "exact", head: true }).eq("phone", phone).gte("created_at", since),
-      db.from("enquiries").select("id", { count: "exact", head: true }).gte("created_at", since),
-    ]);
-    if ((perPhone ?? 0) >= 3) return json({ error: "Too many messages from this number. Please call or WhatsApp us instead." }, 429);
-    if ((total ?? 0) >= 20) return json({ error: "We are receiving a lot of messages right now. Please WhatsApp us instead." }, 429);
-
-    const { error } = await db.from("enquiries").insert({ name, phone, email, studio, interest, message });
+    const { data, error } = await ctx.supabaseAdmin.rpc("submit_enquiry", {
+      p_name: name,
+      p_phone: phone,
+      p_email: email,
+      p_studio: studio,
+      p_interest: interest,
+      p_message: message,
+      p_ip: clientIp(req),
+    });
     if (error) return json({ error: "Could not save your message. Please WhatsApp us." }, 500);
+    if (!data?.ok) return json({ error: LIMIT_MESSAGES[String(data?.reason)] ?? LIMIT_MESSAGES.global }, 429);
 
     let mail = "skipped";
     try {

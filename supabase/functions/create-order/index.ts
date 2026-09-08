@@ -3,16 +3,29 @@
 //
 // Called with the student's session (auth: 'user'). Price comes from the
 // server, never from the browser.
+//
+// Which member row belongs to this account:
+//   1. the row already linked to this user id, else
+//   2. an unlinked row whose email equals the signed-in (verified) email.
+// A phone number typed into the form never selects a member. It is stored on
+// the member's own row and must not belong to anybody else.
 
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
 import { PLAN_PRICES, json, normalisePhone, onlineAmountPaise, razorpayApi } from "../_shared/payments.ts";
 
+// Reuse an unpaid order for the same plan and amount created within this window.
+const REUSE_MINUTES = 30;
+// Fresh orders a member may create per hour.
+const ORDERS_PER_HOUR = 5;
+
+const CONTACT_STUDIO = "Please message the studio.";
+
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
     const userId: string | undefined = ctx.userClaims?.id ?? ctx.jwtClaims?.sub;
-    const userEmail = String(ctx.userClaims?.email ?? ctx.jwtClaims?.email ?? "").toLowerCase() || null;
+    const userEmail = String(ctx.userClaims?.email ?? ctx.jwtClaims?.email ?? "").trim().toLowerCase() || null;
     if (!userId) return json({ error: "Not signed in" }, 401);
 
     let body: { plan?: string; name?: string; phone?: string };
@@ -24,7 +37,7 @@ export default {
     const plan = String(body.plan ?? "");
     const rupees = PLAN_PRICES[plan];
     if (!rupees) return json({ error: "Unknown plan" }, 400);
-    const name = String(body.name ?? "").trim();
+    const name = String(body.name ?? "").trim().slice(0, 120);
     const phone = normalisePhone(body.phone);
     if (name.length < 2) return json({ error: "Please enter your name" }, 400);
     if (!/^[0-9]{12,15}$/.test(phone)) return json({ error: "Please enter a valid mobile number" }, 400);
@@ -38,38 +51,82 @@ export default {
 
     const db = ctx.supabaseAdmin;
     const cols = "id, name, phone, email, user_id";
+    const fail = (e: { message: string }) => json({ error: `Database error: ${e.message}` }, 500);
 
-    // Find the member for this account: by user id, then phone, then email. Then link.
-    let { data: member } = await db.from("members").select(cols).eq("user_id", userId).maybeSingle();
-    if (!member) {
-      ({ data: member } = await db.from("members").select(cols).eq("phone", phone).maybeSingle());
-      if (member?.user_id && member.user_id !== userId) {
-        return json({ error: "This mobile number is already linked to another account. Please message the studio." }, 409);
-      }
-    }
+    // 1. Member already linked to this account.
+    let { data: member, error: byUser } = await db.from("members").select(cols).eq("user_id", userId).maybeSingle();
+    if (byUser) return fail(byUser);
+
+    // 2. Unlinked member with the same verified email: claim it atomically.
     if (!member && userEmail) {
-      ({ data: member } = await db.from("members").select(cols).eq("email", userEmail).maybeSingle());
-      if (member?.user_id && member.user_id !== userId) member = null;
+      const { data: claimed, error } = await db
+        .from("members")
+        .update({ user_id: userId })
+        .eq("email", userEmail)
+        .is("user_id", null)
+        .select(cols)
+        .maybeSingle();
+      if (error) return fail(error);
+      member = claimed;
+    }
+
+    // The phone must not belong to a different member.
+    const { data: phoneOwner, error: phoneError } = await db.from("members").select("id").eq("phone", phone).maybeSingle();
+    if (phoneError) return fail(phoneError);
+    if (phoneOwner && phoneOwner.id !== member?.id) {
+      return json({
+        error: `This mobile number is already registered. Sign in with the email the studio has for you, or ${CONTACT_STUDIO.toLowerCase()}`,
+      }, 409);
     }
 
     if (!member) {
       const { data, error } = await db.from("members").insert({ name, phone, email: userEmail, user_id: userId }).select(cols).single();
       if (error) {
-        if (error.code === "23505") return json({ error: "These details are already linked to another account. Please message the studio." }, 409);
-        return json({ error: error.message }, 500);
+        if (error.code === "23505") return json({ error: `These details are already registered. ${CONTACT_STUDIO}` }, 409);
+        return fail(error);
       }
       member = data;
-    } else {
-      const patch: Record<string, string> = { name, phone, user_id: userId };
-      if (!member.email && userEmail) patch.email = userEmail;
-      const { error } = await db.from("members").update(patch).eq("id", member.id);
+    } else if (member.name !== name || member.phone !== phone) {
+      const { error } = await db.from("members").update({ name, phone }).eq("id", member.id).eq("user_id", userId);
       if (error) {
-        if (error.code === "23505") return json({ error: "This mobile number belongs to another member. Please message the studio." }, 409);
-        return json({ error: error.message }, 500);
+        if (error.code === "23505") return json({ error: `This mobile number belongs to another member. ${CONTACT_STUDIO}` }, 409);
+        return fail(error);
       }
+      member = { ...member, name, phone };
     }
 
     const { base, fee, total: amount } = onlineAmountPaise(rupees);
+    const prefill = { name, email: member.email ?? userEmail ?? "", contact: phone };
+
+    // Reuse a recent unpaid order for the same plan instead of piling up rows.
+    const reuseSince = new Date(Date.now() - REUSE_MINUTES * 60 * 1000).toISOString();
+    const { data: existing, error: existingError } = await db
+      .from("payment_orders")
+      .select("razorpay_order_id")
+      .eq("member_id", member.id)
+      .eq("plan", plan)
+      .eq("amount_paise", amount)
+      .eq("status", "created")
+      .gte("created_at", reuseSince)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existingError) return fail(existingError);
+    if (existing) {
+      return json({ order_id: existing.razorpay_order_id, amount, currency: "INR", key_id: rz.keyId, plan, base_paise: base, fee_paise: fee, prefill, reused: true });
+    }
+
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count, error: countError } = await db
+      .from("payment_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("member_id", member.id)
+      .gte("created_at", hourAgo);
+    if (countError) return fail(countError);
+    if ((count ?? 0) >= ORDERS_PER_HOUR) {
+      return json({ error: "Too many payment attempts. Please try again in an hour, or pay by UPI." }, 429);
+    }
+
     let order;
     try {
       order = await rz.request("/v1/orders", {
@@ -91,17 +148,8 @@ export default {
       plan,
       amount_paise: amount,
     });
-    if (oError) return json({ error: oError.message }, 500);
+    if (oError) return fail(oError);
 
-    return json({
-      order_id: order.id,
-      amount,
-      currency: "INR",
-      key_id: rz.keyId,
-      plan,
-      base_paise: base,
-      fee_paise: fee,
-      prefill: { name, email: member.email ?? userEmail ?? "", contact: phone },
-    });
+    return json({ order_id: order.id, amount, currency: "INR", key_id: rz.keyId, plan, base_paise: base, fee_paise: fee, prefill });
   }),
 };
