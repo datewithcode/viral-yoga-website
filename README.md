@@ -119,7 +119,7 @@ What it gives you:
 
 ### One-time setup
 
-1. **Create the Supabase project** (or ask Claude Code to do it through the Supabase plugin). Note the project ref.
+1. **Create the Supabase project** (or ask Claude Code to do it through the Supabase plugin). Note the project ref. Create it with "Automatically expose new tables" **off** and "Enable automatic RLS" **on**; the migrations grant table access explicitly, including the `service_role` grants the Edge Functions need (`20260908091000_service_role_grants.sql`).
 2. **Apply the database schema:**
    ```bash
    supabase link --project-ref YOUR_PROJECT_REF
