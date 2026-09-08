@@ -84,6 +84,29 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 - Not tested: opening the UPI links in a real UPI app; the contact form's fallback to Netlify if Supabase is unreachable; the admin Edit button; real email delivery through Resend.
 - Not built (later): automatic WhatsApp reminders through Meta's API; two-factor login for the owner; a member number and QR code on the membership page that the instructor scans to open that member in admin (identity check at the desk).
 
+## 4b. What is switched off right now, and what turns it on
+
+Everything below is **built and tested**. It is hidden only because the account behind it does not exist yet. Nothing here needs new work, just the switch.
+
+| Hidden today | Turned on by |
+|---|---|
+| **Buy online** button on all four pricing cards | Razorpay account |
+| **Buy panel** on the membership page: plan chooser, Pay button, Razorpay checkout | Razorpay account |
+| Tapping a plan carries it across to the membership page, already chosen | Razorpay account |
+| Header button reads **Sign in / Register** instead of Sign in | Razorpay account |
+| Page heading reads **Join Viral Yoga** instead of Member sign-in | Razorpay account |
+| Intro line reads **New here? Sign in with your email to buy a membership** | Razorpay account |
+| Expired card says **Renew below** instead of pointing at UPI and WhatsApp | Razorpay account |
+| UPI buttons step down to a small "pay by UPI instead" link | Razorpay account |
+| **6-digit code box** on the sign-in page, so a link opened on another device still works | Domain + Resend |
+| **Online fee shown to the student** ("₹5,000 + ₹118 online payment fee") | Instructor's decision, one number |
+
+The first eight are one setting: `onlinePaymentsEnabled` in `src/data/site.ts`. The code box is `signInEmailHasCode`. The fee is `onlineFeePercent`, which must match `ONLINE_FEE_PERCENT` in `supabase/functions/_shared/payments.ts`.
+
+Separate from these, **all content is still placeholder**: phone numbers, addresses, timetable, photos, the six invented testimonials, and the UPI ID `yourstudio@upi`. The testimonials section disappears on its own if the list is emptied.
+
+Not built at all: automatic WhatsApp reminders, owner two-factor login, member QR code for the desk. See section 4.
+
 ## 5. What we need from you
 
 - [ ] Studio phone number, WhatsApp number, email
