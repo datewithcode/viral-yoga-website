@@ -29,7 +29,7 @@ Edit it to change:
 - the weekly schedule (one row per class per day)
 - every sentence on the page that describes your studio (the `copy` block)
 - the reasons people come (the `benefits` block). Written as what a student wants, not as class names.
-- the common questions (the `faqs` block). **Confirm every answer.** They describe studio policy, and what is in the file is a sensible guess, not your rules.
+- the common questions (the `faqs` block). **Confirm every answer.** They describe studio policy, and what is in the file is a sensible guess, not your rules. They are also published as structured data, which means search engines read them as statements of fact, so a wrong answer here travels further than a wrong sentence elsewhere.
 - your Google rating (the `google` block). Leave `rating` empty and the line stays hidden. **Never type a rating you have not earned:** copy the real numbers from your Google Business profile.
 - testimonials. **The ones in the file are invented.** Replace them with real feedback or set the list to `[]` to hide the section.
 - the teacher and their achievements (the `instructor` block). **Name, photo and every achievement in the file are invented.** Put in the real name, role and a short bio, then list the achievements newest first. Each one takes a `year` (leave it `''` if there is no date), a `title`, and an optional `detail` line. Set `achievements: []` to hide the whole section.
@@ -52,8 +52,8 @@ The site crops each photo to the shape below automatically, so send the closest 
 | About | 1 | Portrait, 4:5 | 1200 x 1500 px | `/images/about.jpg` | Teacher with students, or the hall. |
 | Teacher | 1 | Square, 1:1 | 800 x 800 px | `/images/instructor.jpg` | Head and shoulders of the teacher. Used beside the achievements list. |
 | Gallery | 6 | Landscape, 4:3 | 1200 x 900 px | `/images/gallery-1.jpg` to `gallery-6.jpg` | Mix of both studios. The first one shows larger on phones. |
-| Social preview (link card on WhatsApp, Facebook) | optional | 1.91:1 | 1200 x 630 px | `/images/og.jpg` | The hero is reused if not supplied. |
-| Logo | optional | Square | 512 x 512 px, PNG with transparent background or SVG | `/images/logo.png` | Replaces the lotus mark in the header and the favicon. |
+| Social preview (link card on WhatsApp, Facebook) | optional | 1.91:1 | 1200 x 630 px | `/images/og.jpg` | Set `ogImage` in `site.ts`. If left empty the hero photo is used, but only once the hero is a real JPG: **WhatsApp and Facebook cannot display an SVG**, so while the placeholder drawing is in place every shared link shows a blank card. |
+| Logo | optional | Square | 512 x 512 px, PNG with transparent background or SVG | `/images/logo.png` | Set `logo` in `site.ts` to replace the lotus mark in the header. The browser tab icon is separate: set `favicon`. |
 
 Formats: JPG for photos, PNG or SVG for a logo. Keep JPGs under ~400 KB each so the site stays fast on mobile data. [squoosh.app](https://squoosh.app) is a free tool for resizing and compressing. After adding files, update the paths in `src/data/site.ts`.
 

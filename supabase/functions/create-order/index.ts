@@ -18,8 +18,20 @@ import { PLAN_PRICES, json, normalisePhone, onlineAmountPaise, razorpayApi } fro
 const REUSE_MINUTES = 30;
 // Fresh orders a member may create per hour.
 const ORDERS_PER_HOUR = 5;
+// Calls one signed-in account may make per hour, counted before any lookup.
+// Without this, a phone number could be tested over and over to learn whether
+// it belongs to a member, because that check has to answer truthfully.
+const ATTEMPTS_PER_HOUR = 15;
 
 const CONTACT_STUDIO = "Please message the studio.";
+
+// Enough for the owner to recognise their own address, not enough to harvest it.
+function maskEmail(email: string): string {
+  const [name, domain] = email.split("@");
+  if (!domain) return "…";
+  const head = name.slice(0, 2);
+  return `${head}${"·".repeat(Math.max(1, name.length - 2))}@${domain}`;
+}
 
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
@@ -55,6 +67,21 @@ export default {
     const cols = "id, name, phone, email, user_id";
     const fail = (e: { message: string }) => json({ error: `Database error: ${e.message}` }, 500);
 
+    // Count this attempt first, so probing is bounded even when it never gets
+    // as far as creating an order.
+    const attemptSince = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: attempts, error: attemptError } = await db
+      .from("order_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", attemptSince);
+    if (attemptError) return fail(attemptError);
+    if ((attempts ?? 0) >= ATTEMPTS_PER_HOUR) {
+      return json({ error: "Too many attempts. Please try again in an hour, or message the studio." }, 429);
+    }
+    const { error: logError } = await db.from("order_attempts").insert({ user_id: userId });
+    if (logError) return fail(logError);
+
     // 1. Member already linked to this account.
     let { data: member, error: byUser } = await db.from("members").select(cols).eq("user_id", userId).maybeSingle();
     if (byUser) return fail(byUser);
@@ -73,11 +100,16 @@ export default {
     }
 
     // The phone must not belong to a different member.
-    const { data: phoneOwner, error: phoneError } = await db.from("members").select("id").eq("phone", phone).maybeSingle();
+    const { data: phoneOwner, error: phoneError } = await db.from("members").select("id, email").eq("phone", phone).maybeSingle();
     if (phoneError) return fail(phoneError);
     if (phoneOwner && phoneOwner.id !== member?.id) {
+      // Telling someone to sign in with "the email the studio has for you" is
+      // useless when the studio has no email for them, which is the normal case
+      // for a walk-in member. Say what they can actually do instead.
       return json({
-        error: `This mobile number is already registered. Sign in with the email the studio has for you, or ${CONTACT_STUDIO.toLowerCase()}`,
+        error: phoneOwner.email
+          ? `This mobile number is already registered. Sign in with the email the studio has for you (${maskEmail(phoneOwner.email)}), or ${CONTACT_STUDIO.toLowerCase()}`
+          : `This mobile number is already registered at the studio, but no email is linked to it yet. ${CONTACT_STUDIO} We will link it to this account and your membership will appear here.`,
       }, 409);
     }
 

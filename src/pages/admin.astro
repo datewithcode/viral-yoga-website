@@ -126,7 +126,7 @@ import { isConfigured } from '../lib/supabase';
           </div>
           <div>
             <h2 class="text-h3">Payments that need attention</h2>
-            <p class="mt-1 text-sm text-ink-soft">Razorpay payments the system could not match to a plan or member. Add them by hand, then they can be ignored.</p>
+            <p class="mt-1 text-sm text-ink-soft">Razorpay payments the system could not record on its own. Add them by hand, then they can be ignored. Payments it is still retrying by itself do not appear here, so nothing in this list is about to sort itself out.</p>
             <div id="list-events" class="mt-4"></div>
           </div>
         </div>
@@ -308,8 +308,7 @@ import { isConfigured } from '../lib/supabase';
       const { data } = await supabase!
         .from('webhook_events')
         .select('id, received_at, error, payload')
-        .eq('processed', false)
-        .not('error', 'is', null)
+        .eq('needs_attention', true)
         .order('received_at', { ascending: false })
         .limit(20);
       const el = $('list-events');

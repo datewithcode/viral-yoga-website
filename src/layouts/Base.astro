@@ -12,7 +12,10 @@ interface Props {
 const { title, description = site.description } = Astro.props;
 const fullTitle = title ? `${title} · ${site.name}` : `${site.name} · Yoga classes in Anjar & Adipur`;
 const canonical = new URL(Astro.url.pathname, site.url).toString();
-const ogImage = new URL(site.heroImage, site.url).toString();
+// Social networks will not render an SVG, so only offer a real picture. The
+// explicit ogImage wins; otherwise the hero, but only once it is a real photo.
+const socialSource = site.ogImage || (site.heroImage.endsWith('.svg') ? '' : site.heroImage);
+const ogImage = socialSource ? new URL(socialSource, site.url).toString() : '';
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -22,7 +25,7 @@ const jsonLd = {
   url: site.url,
   telephone: site.phone,
   email: site.email,
-  image: ogImage,
+  ...(ogImage ? { image: ogImage } : {}),
   location: site.locations.map((l) => ({
     '@type': 'Place',
     name: l.name,
@@ -37,14 +40,14 @@ const jsonLd = {
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href={site.favicon} />
     <meta name="theme-color" content="#1e2b48" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={ogImage} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
     <meta property="og:url" content={canonical} />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

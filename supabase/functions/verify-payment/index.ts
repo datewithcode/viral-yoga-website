@@ -63,9 +63,24 @@ export default {
       return json({ ok: true, ...result });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      // A rejected payment is the student's problem to raise with the studio;
-      // anything else is ours, and the webhook will retry it.
-      return json({ ok: false, error: message }, e instanceof PaymentRejected ? 422 : 500);
+      const rejected = e instanceof PaymentRejected;
+      if (rejected) {
+        // Nothing will fix this on its own and the webhook will reject it the
+        // same way, so put it in front of the owner now rather than losing it.
+        await db.from("webhook_events").insert({
+          provider: "razorpay",
+          event: "verify-payment.rejected",
+          event_id: `verify:${paymentId}`,
+          payload: { payload: { payment: { entity: payment } } },
+          processed: false,
+          needs_attention: true,
+          attempts: 1,
+          error: message,
+        });
+      }
+      // A rejected payment is for the studio to sort out; anything else is ours,
+      // and the webhook will retry it.
+      return json({ ok: false, error: message }, rejected ? 422 : 500);
     }
   }),
 };
