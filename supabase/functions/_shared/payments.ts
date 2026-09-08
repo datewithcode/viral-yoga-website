@@ -19,10 +19,6 @@ export function onlineAmountPaise(rupees: number): { base: number; fee: number; 
   return { base, fee, total: base + fee };
 }
 
-export const PLANS: Record<number, string> = Object.fromEntries(
-  Object.entries(PLAN_PRICES).map(([plan, rupees]) => [rupees, plan]),
-);
-
 const encoder = new TextEncoder();
 
 export async function hmacSha256Hex(secret: string, message: string): Promise<string> {
@@ -73,73 +69,83 @@ export function razorpayApi() {
   };
 }
 
+/**
+ * A payment we will never be able to record automatically: no matching order,
+ * wrong amount, and so on. Retrying would not help; the owner sorts it out from
+ * the "Payments that need attention" list. Anything else thrown by
+ * recordPayment is transient (database unreachable, permission missing) and
+ * the caller should ask Razorpay to retry.
+ */
+export class PaymentRejected extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaymentRejected";
+  }
+}
+
 export type RecordResult = { member_id: number; plan: string; duplicate: boolean; note?: string };
 
 /**
  * Turn a captured Razorpay payment entity into a membership row.
- * Trust order: our own payment_orders row (signed-in purchase) > phone > email > new member.
+ *
+ * Every legitimate online payment starts from create-order, so the
+ * payment_orders row is the only thing trusted to say which member and plan a
+ * payment belongs to. Contact details on the payment are never used to pick a
+ * member. A payment without a local order is rejected and lands in the
+ * attention list.
+ *
  * Idempotent on razorpay_payment_id, so webhook and verify-payment can both call it.
  */
 // deno-lint-ignore no-explicit-any
 export async function recordPayment(db: any, p: any): Promise<RecordResult> {
-  if (!p?.id) throw new Error("No payment entity");
+  if (!p?.id) throw new PaymentRejected("No payment entity");
   const amountPaise = Number(p.amount);
   const rupees = Math.round(amountPaise / 100);
-  const phone = normalisePhone(p.contact);
-  const email = p.email ? String(p.email).trim().toLowerCase() : null;
-  const notes = p.notes && !Array.isArray(p.notes) && typeof p.notes === "object" ? p.notes : {};
-  const name = String(notes.name ?? notes.Name ?? "").trim();
-  let note: string | undefined;
+  if (!p.order_id) throw new PaymentRejected(`Payment ₹${rupees} has no order. Add it by hand in admin if it is real.`);
 
-  let plan: string | undefined;
-  let member: { id: number; name: string; email: string | null; phone: string } | null = null;
-
-  const { data: order } = p.order_id
-    ? await db.from("payment_orders").select("id, member_id, plan, amount_paise").eq("razorpay_order_id", p.order_id).maybeSingle()
-    : { data: null };
-
-  if (order) {
-    if (amountPaise !== order.amount_paise) throw new Error(`Paid ₹${rupees} but order was for ₹${order.amount_paise / 100}`);
-    plan = order.plan;
-    ({ data: member } = await db.from("members").select("id, name, email, phone").eq("id", order.member_id).maybeSingle());
-    if (!member) throw new Error(`Order ${p.order_id} points at a missing member`);
-  } else {
-    plan = PLANS[rupees];
-    if (!plan) throw new Error(`No plan matches amount ₹${rupees}. Add this payment by hand in admin.`);
-    if (!phone) throw new Error("Payment has no contact number");
-    ({ data: member } = await db.from("members").select("id, name, email, phone").eq("phone", phone).maybeSingle());
-    if (!member && email) {
-      ({ data: member } = await db.from("members").select("id, name, email, phone").eq("email", email).maybeSingle());
-    }
-    if (!member) {
-      const { data: created, error } = await db.from("members").insert({ name, phone, email }).select("id, name, email, phone").single();
-      if (error) throw new Error(`Could not create member: ${error.message}`);
-      member = created;
-    }
+  const { data: order, error: orderError } = await db
+    .from("payment_orders")
+    .select("id, member_id, plan, amount_paise")
+    .eq("razorpay_order_id", p.order_id)
+    .maybeSingle();
+  if (orderError) throw new Error(`Could not read order: ${orderError.message}`);
+  if (!order) throw new PaymentRejected(`Order ${p.order_id} was not created by this site. Add it by hand in admin if it is real.`);
+  if (amountPaise !== order.amount_paise) {
+    throw new PaymentRejected(`Paid ₹${rupees} but order was for ₹${order.amount_paise / 100}`);
   }
 
-  // Fill in anything we learned that the member row lacks.
-  const patch: Record<string, string> = {};
-  if (!member!.name && name) patch.name = name;
-  if (!member!.email && email) patch.email = email;
-  if (!member!.phone && phone) patch.phone = phone;
-  if (Object.keys(patch).length) {
-    const { error } = await db.from("members").update(patch).eq("id", member!.id);
-    if (error) note = `Could not update member details: ${error.message}`;
+  const { data: member, error: memberError } = await db
+    .from("members")
+    .select("id, name, email")
+    .eq("id", order.member_id)
+    .maybeSingle();
+  if (memberError) throw new Error(`Could not read member: ${memberError.message}`);
+  if (!member) throw new PaymentRejected(`Order ${p.order_id} points at a missing member`);
+
+  // Fill in a blank name from the payment, nothing else.
+  let note: string | undefined;
+  const notes = p.notes && !Array.isArray(p.notes) && typeof p.notes === "object" ? p.notes : {};
+  const name = String(notes.name ?? notes.Name ?? "").trim();
+  if (!member.name && name) {
+    const { error } = await db.from("members").update({ name }).eq("id", member.id);
+    if (error) note = `Could not update member name: ${error.message}`;
   }
 
   const { error: mError } = await db.from("memberships").insert({
-    member_id: member!.id,
-    plan,
+    member_id: member.id,
+    plan: order.plan,
     amount_paise: amountPaise,
     starts_on: indiaDate(Number(p.created_at) || Math.floor(Date.now() / 1000)),
     source: "razorpay",
     razorpay_payment_id: p.id,
-    razorpay_order_id: p.order_id ?? null,
+    razorpay_order_id: p.order_id,
   });
   const duplicate = mError?.code === "23505";
   if (mError && !duplicate) throw new Error(`Could not create membership: ${mError.message}`);
-  if (order && !duplicate) await db.from("payment_orders").update({ status: "paid" }).eq("id", order.id);
+  if (!duplicate) {
+    const { error } = await db.from("payment_orders").update({ status: "paid" }).eq("id", order.id);
+    if (error) throw new Error(`Could not mark order paid: ${error.message}`);
+  }
 
-  return { member_id: member!.id, plan: plan!, duplicate, note };
+  return { member_id: member.id, plan: order.plan, duplicate, note };
 }

@@ -1,6 +1,6 @@
 # Viral Yoga website: status and next steps
 
-Last updated: 8 September 2026, after step 2 (backend live)
+Last updated: 8 September 2026, after the security review fixes
 
 Live site (placeholder content): https://startling-beignet-f4a10f.netlify.app  
 Code: https://github.com/datewithcode/viral-yoga-website
@@ -26,7 +26,8 @@ Everything is built and tested. The public website is live with placeholder cont
 | Admin: import your existing member list from a spreadsheet | Yes | Yes | Yes, not yet used |
 | Admin: enquiries from the contact form, with WhatsApp reply and Done | Yes | Yes | Yes |
 | Optional online fee passed to the student (currently off) | Yes | Yes | No |
-| Backend: database, security rules, four server functions | Yes | Yes, including security cases | Yes, Supabase project Viral-Yoga (Mumbai) |
+| Backend: database, security rules, four server functions | Yes | Yes, 51 automated cases run on every code change | Yes, Supabase project Viral-Yoga (Mumbai) |
+| Security review (external, 8 Sept): 2 high, 3 medium, 1 low findings | All fixed | Yes, each has a test | Yes |
 | Real Razorpay account | Not started | No | No |
 | Deployment: Netlify | Yes | Yes | Yes, auto-deploys from GitHub `main` |
 | Deployment: Supabase project | Yes | Yes | Yes, free tier for now |
@@ -90,6 +91,7 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 
 1. ~~Site live on Netlify, deployed from GitHub.~~ Done 8 Sept.
 2. ~~Supabase backend without payments: database, functions, admin login, enquiries.~~ Done 8 Sept.
+2b. ~~Security review fixes.~~ Done 8 Sept. An external review found two high-risk flaws in the payment backend (a signed-in user could claim another member's record by phone; a failed webhook was never retried) and four smaller ones. All six are fixed and each has an automated test; the tests now run on every code change. Details: `docs/security-review-2026-09-08.md`. Nothing exploitable was live, because online payment is still switched off.
 
 **Now waiting on the owner. Nothing is being built until one of these arrives; any order is fine:**
 
@@ -99,7 +101,7 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 Then, in this order:
 
 3. **Self-service on.** Domain pointed at the site, Resend connected for emails, sign-in email with code, Razorpay in test mode, Buy online switched on, one full test purchase. Then live Razorpay keys after KYC.
-4. **Security pass.** Content security policy header, order rate limit, owner two-factor guidance, advisor checks on the live project.
+4. **Security pass.** Content security policy header, owner two-factor guidance, advisor checks on the live project, repeat review before live Razorpay keys. (Order rate limit and the review findings are already done.)
 5. **Pilot** with the instructor and about ten members for one to two weeks.
 6. **Launch.** Supabase Pro, backups confirmed, announce the Membership link to all members.
 
@@ -138,7 +140,9 @@ If the online fee is passed to the student, they pay: 1 month ₹2,047, 3 months
 - Supabase allows 30 sign-in emails per hour by default. This must be raised in the dashboard before launch, or a busy launch day fails.
 - Free Supabase projects pause after 7 days without activity. Pro never pauses.
 - Imported memberships record today's plan price, not what was paid back then.
-- Students who pay by direct UPI are not linked to an account until the instructor adds their email.
+- Students who pay by direct UPI are not linked to an account until the instructor adds their email. A phone number typed at checkout never links anyone; only the email does.
+- Only payments that start from "Buy online" on the site are recorded automatically. A payment through a Razorpay link outside the site goes to the admin attention list to be added by hand.
+- Contact form: 3 messages per phone number and 5 per connection every 10 minutes. Orders: at most 5 unpaid orders per member per hour.
 - A paused or offline backend does not lose payments: Razorpay keeps its own record and retries for 24 hours, and anything missed appears in Razorpay's dashboard.
 
 ## 10. Things that cost money, all optional until the step that needs them
