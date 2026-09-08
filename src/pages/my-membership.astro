@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { site } from '../data/site';
 import { isConfigured } from '../lib/supabase';
+import SignIn from '../components/SignIn.astro';
 ---
 <Base title="Membership" description="Join Viral Yoga or check your days remaining.">
   <section class="section">
@@ -13,19 +14,7 @@ import { isConfigured } from '../lib/supabase';
       )}
 
       <div id="ask" hidden>
-        <p id="ask-intro" class="mt-4 text-ink-soft">{site.pricing.onlinePaymentsEnabled
-          ? 'New here? Sign in with your email to buy a membership. Already a member? The same sign-in shows your days remaining. No password: we email you a link.'
-          : 'Members: sign in with the email the studio has for you to see your plan and days remaining. No password: we email you a link. Not a member yet? Book a free trial from the home page.'}</p>
-        <form id="otp-form" class="mt-6 flex flex-col gap-3 sm:flex-row">
-          <input id="otp-email" type="email" required autocomplete="email" placeholder="you@example.com" class="field" />
-          <button type="submit" class="btn-primary shrink-0">Send sign-in link</button>
-        </form>
-        <p id="otp-msg" class="mt-3 text-sm text-ink-soft" hidden></p>
-        <form id="code-form" class="mt-4 flex flex-col gap-3 sm:flex-row" hidden>
-          <input id="code-input" inputmode="numeric" pattern="[0-9]{6,8}" autocomplete="one-time-code" placeholder="6-digit code from the email" required class="field" />
-          <button type="submit" class="btn-primary shrink-0">Sign in with code</button>
-        </form>
-        <p id="code-msg" class="mt-3 text-sm text-madder" hidden></p>
+        <SignIn redirectPath="/my-membership/" />
         <p class="mt-8 text-sm text-ink-soft">
           Prefer to pay by UPI without signing in? Use the buttons on the{' '}
           <a class="underline underline-offset-4" href="/#pricing">pricing section</a>.
@@ -98,52 +87,17 @@ import { isConfigured } from '../lib/supabase';
     };
     const wantedPlan = new URLSearchParams(location.search).get('plan');
     if (site.pricing.onlinePaymentsEnabled && wantedPlan && site.pricing.plans.some((p) => p.name === wantedPlan)) {
-      $('ask-intro').textContent = `You chose the ${wantedPlan} plan. Sign in with your email to pay. No password: we email you a link.`;
+      // SignIn.astro handles its own wording for a chosen plan; this only
+      // preselects the matching radio in the buy panel further down.
       const radio = document.querySelector<HTMLInputElement>(`input[name="plan"][value="${wantedPlan}"]`);
       if (radio) radio.checked = true;
     }
 
     // ---- Sign in --------------------------------------------------------------
-    $('otp-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = ($('otp-email') as HTMLInputElement).value.trim().toLowerCase();
-      const msg = $('otp-msg');
-      const sendBtn = $('otp-form').querySelector('button') as HTMLButtonElement;
-      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
-      msg.hidden = false; msg.textContent = 'Sending the email…';
-      const redirect = `${location.origin}/my-membership/${wantedPlan ? '?plan=' + encodeURIComponent(wantedPlan) : ''}`;
-      const { error } = await supabase!.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: redirect } });
-      msg.hidden = false;
-      sendBtn.disabled = false; sendBtn.textContent = 'Send sign-in link';
-      if (error) {
-        const m = error.message.toLowerCase();
-        msg.textContent = m.includes('rate limit')
-          ? 'Too many sign-in emails were sent in the last hour. Please try again in a little while, or message us on WhatsApp.'
-          : 'Could not send the email: ' + error.message;
-        return;
-      }
-      pendingEmail = email;
-      if (site.pricing.signInEmailHasCode) {
-        msg.textContent = `Email sent to ${email}. Type the code from it below, or open its link on this device. It works for one hour.`;
-        $('code-form').hidden = false;
-        ($('code-input') as HTMLInputElement).focus();
-      } else {
-        msg.textContent = `Email sent to ${email}. Open the link in it on this same device (phone or computer) to sign in here. It works for one hour.`;
-      }
-    });
+    // The form lives in SignIn.astro. It announces a successful code sign-in and
+    // this page decides what happens next, which is: load their membership.
+    document.addEventListener('vy:signedin', () => { void render(); });
 
-    // Cross-device sign-in: the link signs in the device that opens it, so the
-    // email also carries a code the student can type on the device they are using.
-    let pendingEmail = '';
-    $('code-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const token = ($('code-input') as HTMLInputElement).value.trim();
-      const codeMsg = $('code-msg');
-      codeMsg.hidden = true;
-      const { error } = await supabase!.auth.verifyOtp({ email: pendingEmail, token, type: 'email' });
-      if (error) { codeMsg.hidden = false; codeMsg.textContent = 'That code did not work. Check the digits, or request a new email.'; return; }
-      await render();
-    });
     $('signout').addEventListener('click', async () => {
       await supabase!.auth.signOut();
       try { localStorage.removeItem('vy-member'); localStorage.removeItem('vy-member-name'); } catch {}
@@ -171,6 +125,15 @@ import { isConfigured } from '../lib/supabase';
       try {
         localStorage.setItem('vy-member', JSON.stringify({ id: session.user.id, name: member?.name || '' }));
       } catch {}
+
+      // On the page you land on straight after clicking the emailed link, the
+      // header script already ran, before this browser had a session at all, so
+      // it still says "Sign in". Put it right now rather than on the next click.
+      const firstName = (member?.name || '').trim().split(' ')[0];
+      document.querySelectorAll<HTMLAnchorElement>('[data-signin]').forEach((a) => {
+        a.textContent = firstName ? `Hi, ${firstName}` : 'Your membership';
+        a.title = 'Your membership';
+      });
       if (member) {
         const nameEl = $('buy-name') as HTMLInputElement, phoneEl = $('buy-phone') as HTMLInputElement;
         if (!nameEl.value) nameEl.value = member.name ?? '';

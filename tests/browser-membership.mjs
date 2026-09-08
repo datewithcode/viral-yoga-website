@@ -38,9 +38,9 @@ await send('Page.navigate', { url: 'http://localhost:4399/my-membership/' });
 await wait(2500);
 
 // Ask for the sign-in link.
-await ev(`(()=>{document.querySelector('#otp-email').value='asha@example.com'; document.getElementById('otp-form').requestSubmit(); return true})()`);
+await ev(`(()=>{document.querySelector('#signin-email').value='asha@example.com'; document.querySelector('[data-email-form]').requestSubmit(); return true})()`);
 await wait(3000);
-console.log('sign-in message:', await ev(`document.getElementById('otp-msg').textContent`));
+console.log('sign-in message:', await ev(`document.querySelector('[data-email-msg]').textContent`));
 
 // Take the link out of the local mailbox.
 const msgs = await (await fetch('http://127.0.0.1:54324/api/v1/messages?limit=5')).json();
