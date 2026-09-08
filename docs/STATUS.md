@@ -35,12 +35,23 @@ Everything is built and tested. The public website is live with placeholder cont
 
 All names, phone numbers, addresses, timetable entries, testimonials and photos on the site are placeholders. The studio name is already set to Viral Yoga.
 
+## 2b. How to check the security fixes yourself
+
+1. **GitHub Actions**: https://github.com/datewithcode/viral-yoga-website/actions. The latest run on `main` has three green checks. Open `functions-integration`, expand "bash tests/run.sh": 51 lines starting with PASS, one per case, named after the finding they prove (for example "another account cannot claim a walk-in's phone").
+2. **The tests are in the repo**: `tests/functions.sh`. Anyone can read what each case does.
+3. **Run them on the laptop** (Docker running): `git pull`, `supabase start`, `bash tests/run.sh`. Last line: `passed 51, failed 0`.
+4. **Supabase dashboard**: Edge Functions shows all four at version 2, updated 8 Sept. Table Editor shows the new column `attempts` on `webhook_events` and `ip` on `enquiries`. Database > Functions shows `submit_enquiry`.
+5. **Live site**: send four contact-form messages with the same phone number. The fourth is refused with "Too many messages from this number".
+6. **For the reviewer**: `docs/security-review-2026-09-08.md` lists each finding, the fix, and the test that proves it. A repeat review is planned before live Razorpay keys.
+
+**Still to do on GitHub (owner, 1 minute):** Settings > Rules > Rulesets > protect-main > Require status checks: add `functions-typecheck` and `functions-integration`. Until then only the website build is required before a merge to main.
+
 ## 3. How it works
 
 ### For a student
 
 1. Opens the website, sees classes and prices.
-2. Taps **Buy online** on a plan, or **My membership** in the menu.
+2. Taps **Buy online** on a plan, or **Sign in** at the top of the page. After signing in that button reads "Hi, <name>" and opens their membership page. (The separate "Membership" menu link was removed on 8 Sept; it went to the same page.)
 3. Types their email. We email them a sign-in link. No signup form, no password. Their account is created automatically the first time.
 4. Enters name and mobile, confirms the plan, pays with UPI, card or net banking through Razorpay.
 5. Sees a card with plan, start date, end date and days remaining. Can come back any time.
