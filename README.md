@@ -40,13 +40,17 @@ Then run `npm run build` again.
 
 Put your photos in `public/images/` and update the paths in `src/data/site.ts`.
 
-| Placeholder today          | Replace with                                  | Suggested size   |
-| -------------------------- | --------------------------------------------- | ---------------- |
-| `/images/hero.svg`         | `/images/hero.jpg`, your best wide studio shot | 1920 x 1200 px   |
-| `/images/about.svg`        | `/images/about.jpg`, a teacher with students   | 1200 x 1500 px   |
-| `/images/gallery-1..6.svg` | `/images/gallery-1.jpg` and so on              | 1200 x 900 px    |
+The site crops each photo to the shape below automatically, so send the closest shape you have. Phone photos are fine if they are sharp.
 
-Keep JPGs under ~400 KB each so the site stays fast on mobile data. [squoosh.app](https://squoosh.app) is a free tool for this.
+| Section | How many | Shape | Send at least | File | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Hero (top of home page) | 1 | Wide, 16:10 | 1920 x 1200 px | `/images/hero.jpg` | Headline sits bottom-left over a dark fade. Keep the important part of the photo in the upper-right two-thirds. Landscape only. |
+| About | 1 | Portrait, 4:5 | 1200 x 1500 px | `/images/about.jpg` | Teacher with students, or the hall. |
+| Gallery | 6 | Landscape, 4:3 | 1200 x 900 px | `/images/gallery-1.jpg` to `gallery-6.jpg` | Mix of both studios. The first one shows larger on phones. |
+| Social preview (link card on WhatsApp, Facebook) | optional | 1.91:1 | 1200 x 630 px | `/images/og.jpg` | The hero is reused if not supplied. |
+| Logo | optional | Square | 512 x 512 px, PNG with transparent background or SVG | `/images/logo.png` | Replaces the lotus mark in the header and the favicon. |
+
+Formats: JPG for photos, PNG or SVG for a logo. Keep JPGs under ~400 KB each so the site stays fast on mobile data. [squoosh.app](https://squoosh.app) is a free tool for resizing and compressing. After adding files, update the paths in `src/data/site.ts`.
 
 ### Google Maps
 
@@ -158,6 +162,21 @@ What it gives you:
 - **Prices live in two places.** If you change prices in `src/data/site.ts`, change them in `supabase/functions/_shared/payments.ts` too and redeploy all three functions. The server price is what gets charged.
 - **Attention list.** A payment the system could not match (for example, paid straight to your Razorpay link without signing in, with an unusual amount) is kept in "Payments that need attention" on the admin page.
 - **Local testing** (optional, needs Docker): `supabase start`, then `supabase functions serve`. `supabase status` prints the local URL and keys.
+
+## Working with the code (branches)
+
+- `main` is what is live. Nobody commits to it directly.
+- `develop` is the working branch and the default on GitHub. New work happens on a short-lived branch off `develop`, named like `feat/member-import` or `fix/timetable-tabs`, and comes back through a pull request.
+- To release, open a pull request from `develop` into `main`. Merging it is the deploy trigger once Netlify is connected to the repository.
+- Every pull request runs the type check and the build automatically (see `.github/workflows/ci.yml`). Do not merge red.
+
+```bash
+git checkout develop && git pull
+git checkout -b feat/short-name
+# ... work, commit ...
+git push -u origin feat/short-name
+gh pr create --base develop
+```
 
 ## Project layout
 
