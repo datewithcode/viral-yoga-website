@@ -105,13 +105,31 @@ export async function recordPayment(db: any, p: any): Promise<RecordResult> {
 
   const { data: order, error: orderError } = await db
     .from("payment_orders")
-    .select("id, member_id, plan, amount_paise")
+    .select("id, member_id, plan, amount_paise, status")
     .eq("razorpay_order_id", p.order_id)
     .maybeSingle();
   if (orderError) throw new Error(`Could not read order: ${orderError.message}`);
   if (!order) throw new PaymentRejected(`Order ${p.order_id} was not created by this site. Add it by hand in admin if it is real.`);
   if (amountPaise !== order.amount_paise) {
     throw new PaymentRejected(`Paid ₹${rupees} but order was for ₹${order.amount_paise / 100}`);
+  }
+
+  // An order that is already settled may only be replayed by the very payment
+  // that settled it. A different payment on the same order is a second charge:
+  // it must not quietly become a second membership.
+  if (order.status === "paid") {
+    const { data: already, error: alreadyError } = await db
+      .from("memberships")
+      .select("razorpay_payment_id")
+      .eq("razorpay_order_id", p.order_id)
+      .limit(1);
+    if (alreadyError) throw new Error(`Could not read existing membership: ${alreadyError.message}`);
+    const settledBy = already?.[0]?.razorpay_payment_id;
+    if (settledBy && settledBy !== p.id) {
+      throw new PaymentRejected(
+        `Order ${p.order_id} was already paid by ${settledBy}. This looks like a second payment: refund it, or add it by hand.`,
+      );
+    }
   }
 
   const { data: member, error: memberError } = await db
@@ -142,10 +160,12 @@ export async function recordPayment(db: any, p: any): Promise<RecordResult> {
   });
   const duplicate = mError?.code === "23505";
   if (mError && !duplicate) throw new Error(`Could not create membership: ${mError.message}`);
-  if (!duplicate) {
-    const { error } = await db.from("payment_orders").update({ status: "paid" }).eq("id", order.id);
-    if (error) throw new Error(`Could not mark order paid: ${error.message}`);
-  }
+
+  // Always run, never only on the first pass. If a first delivery inserted the
+  // membership and then failed here, the retry arrives with duplicate = true and
+  // is the only chance left to finish the job. Setting 'paid' twice is a no-op.
+  const { error: statusError } = await db.from("payment_orders").update({ status: "paid" }).eq("id", order.id);
+  if (statusError) throw new Error(`Could not mark order paid: ${statusError.message}`);
 
   return { member_id: member.id, plan: order.plan, duplicate, note };
 }

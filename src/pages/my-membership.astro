@@ -144,7 +144,11 @@ import { isConfigured } from '../lib/supabase';
       if (error) { codeMsg.hidden = false; codeMsg.textContent = 'That code did not work. Check the digits, or request a new email.'; return; }
       await render();
     });
-    $('signout').addEventListener('click', async () => { await supabase!.auth.signOut(); try { localStorage.removeItem('vy-member-name'); } catch {} show('ask'); });
+    $('signout').addEventListener('click', async () => {
+      await supabase!.auth.signOut();
+      try { localStorage.removeItem('vy-member'); localStorage.removeItem('vy-member-name'); } catch {}
+      show('ask');
+    });
 
     // ---- Memberships ----------------------------------------------------------
     async function render() {
@@ -163,7 +167,10 @@ import { isConfigured } from '../lib/supabase';
       $('load-error').hidden = !(mError || pError);
       if (mError || pError) { $('none').hidden = true; cards.innerHTML = ''; return; }
 
-      try { localStorage.setItem('vy-member-name', member?.name || ''); } catch {}
+      // Keyed to this account: the header only greets someone whose id matches.
+      try {
+        localStorage.setItem('vy-member', JSON.stringify({ id: session.user.id, name: member?.name || '' }));
+      } catch {}
       if (member) {
         const nameEl = $('buy-name') as HTMLInputElement, phoneEl = $('buy-phone') as HTMLInputElement;
         if (!nameEl.value) nameEl.value = member.name ?? '';
