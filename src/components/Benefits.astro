@@ -1,0 +1,44 @@
+---
+// What a visitor gets, in their words rather than in class names. Sits directly
+// under the hero, because someone who has never done yoga does not yet know
+// what "Hatha" means, but does know their back hurts.
+import { site } from '../data/site';
+const { google, activeMembers, benefits, copy } = site;
+---
+{benefits.length > 0 && (
+<section id="why" class="section">
+  <div class="container-site">
+    <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <h2 class="text-h2 max-w-xl">{copy.benefitsHeading}</h2>
+
+      {/* Only ever shows real numbers: it stays hidden until a rating is filled in. */}
+      <div class="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
+        {google.rating && (
+          <p class="flex items-center gap-2">
+            <span aria-hidden="true" class="text-madder">★</span>
+            <span><span class="font-medium">{google.rating}</span> on Google{google.reviews && <span class="text-ink-soft"> from {google.reviews} reviews</span>}</span>
+            {google.url && (
+              <a href={google.url} target="_blank" rel="noopener" class="underline underline-offset-4 text-ink-soft hover:text-ink">Read them</a>
+            )}
+          </p>
+        )}
+        {activeMembers && <p><span class="font-medium">{activeMembers}</span> <span class="text-ink-soft">members at two studios</span></p>}
+      </div>
+    </div>
+
+    <ul class="mt-12 grid gap-px overflow-hidden rounded-lg border border-ink/15 bg-ink/15 md:grid-cols-3">
+      {benefits.map((b) => (
+        <li class="flex flex-col bg-chalk p-6 sm:p-7">
+          <h3 class="text-h3">{b.title}</h3>
+          <p class="mt-3 flex-1 text-ink-soft">{b.body}</p>
+        </li>
+      ))}
+    </ul>
+
+    <div class="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
+      <a href="/#contact" class="btn-primary">{copy.heroPrimaryButton}</a>
+      <p class="text-ink-soft">{copy.benefitsCta}</p>
+    </div>
+  </div>
+</section>
+)}

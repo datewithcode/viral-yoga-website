@@ -1,0 +1,63 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { site } from '../data/site';
+const { refundWindowDays, refundProcessingDays } = site.legal;
+---
+<Legal
+  title="Refunds and cancellation"
+  description={`When ${site.name} refunds a membership, and how long the money takes to come back.`}
+>
+  <p>
+    Your first class is free, so you can try the studio before spending anything. That is the best
+    way to be sure. If you still need a refund after paying, this is how it works.
+  </p>
+
+  <h2>Within {refundWindowDays} days of paying</h2>
+  <p>
+    Ask us within {refundWindowDays} days of buying a membership and we will refund it in full, less
+    any charge the payment company keeps. Attending a class or two in that time is fine and does not
+    cancel this.
+  </p>
+
+  <h2>After that</h2>
+  <p>
+    Memberships are generally not refundable once they are running, because a place in a small batch
+    is held for you. We are not unreasonable about it, though. Talk to us if:
+  </p>
+  <ul>
+    <li>An injury or illness stops you practising. We would normally pause your membership and give you the time back later, which suits most people better than a refund.</li>
+    <li>You are moving away from Anjar and Adipur for good.</li>
+    <li>We closed the studio or cancelled classes for a long stretch.</li>
+  </ul>
+  <p>
+    In those cases we will work out a fair answer with you, which may be a pause, an extension, or a
+    part refund for the time not used.
+  </p>
+
+  <h2>What is not refunded</h2>
+  <ul>
+    <li>Classes you simply did not attend. Memberships run by date, not by class.</li>
+    <li>A membership that has already ended.</li>
+    <li>A membership cancelled because someone was asked to leave for their behaviour.</li>
+  </ul>
+
+  <h2>How to ask</h2>
+  <p>
+    Message us on <a href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>,
+    write to <a href={`mailto:${site.email}`}>{site.email}</a>, or speak to the teacher at the studio.
+    Tell us your name, your mobile number, and when you paid.
+  </p>
+
+  <h2>How long it takes</h2>
+  <p>
+    We will answer within 3 working days. Once a refund is approved, the money goes back the same way
+    you paid it and normally reaches you within {refundProcessingDays} working days, depending on
+    your bank. Cash payments are refunded in cash at the studio.
+  </p>
+
+  <h2>Cancelling a membership</h2>
+  <p>
+    There is nothing to cancel and no automatic renewal. A membership simply ends on its end date. We
+    will remind you on WhatsApp before it does, and you renew only if you want to.
+  </p>
+</Legal>

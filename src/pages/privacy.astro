@@ -1,0 +1,111 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { site } from '../data/site';
+const online = site.pricing.onlinePaymentsEnabled;
+---
+<Legal
+  title="Privacy policy"
+  description={`How ${site.name} collects, uses and stores your personal information.`}
+>
+  <p>
+    This page explains what {site.legal.entityName} does with your personal information when you use this
+    website or become a member. It is written to describe what actually happens, not to cover every
+    imaginable case.
+  </p>
+
+  <h2>Who is responsible</h2>
+  <p>
+    {site.legal.entityName}, running yoga studios in Anjar and Adipur, Kutch, Gujarat, India. Our
+    registered address and phone number are at the bottom of every page of this website.
+  </p>
+
+  <h2>What we collect, and why</h2>
+  <p>When you send the enquiry form on this website:</p>
+  <ul>
+    <li>Your name and mobile number, so we can reply.</li>
+    <li>Your email address, studio preference and message, if you fill them in.</li>
+    <li>
+      The internet address (IP address) your message came from. This is used only to stop one person
+      or machine flooding the form, and for nothing else.
+    </li>
+  </ul>
+  <p>When you become a member:</p>
+  <ul>
+    <li>Your name, mobile number and email address.</li>
+    <li>Which plan you bought, when it starts and when it ends, and how you paid.</li>
+    <li>A reference number for the payment, so a payment can be matched to your membership.</li>
+    <li>When we sent you a renewal reminder, so you do not get the same message twice.</li>
+  </ul>
+  <p>
+    We do not collect anything else. There is no advertising, no tracking across other websites, and
+    no analytics on this site.
+  </p>
+
+  <h2>Card and bank details</h2>
+  <p>
+    We never see or store your card number, UPI PIN, or bank login. {online
+      ? 'Online payments are handled entirely by Razorpay, who are regulated for this purpose. We receive only a reference number and the amount.'
+      : 'Online card payment is not switched on yet. When it is, payments will be handled entirely by Razorpay, who are regulated for this purpose, and we will receive only a reference number and the amount.'}
+    If you pay by UPI directly, the money moves between your app and our bank, and we see only what
+    your app shows us.
+  </p>
+
+  <h2>Who else can see your information</h2>
+  <p>
+    We do not sell your information and we do not share it for marketing. It reaches these companies
+    only because they run parts of this service for us:
+  </p>
+  <ul>
+    <li><strong>Supabase</strong> stores the member and enquiry records. Our data is held in Mumbai, India.</li>
+    <li><strong>Netlify</strong> serves this website and keeps short-lived server logs.</li>
+    <li><strong>Razorpay</strong> processes online payments, when that is switched on.</li>
+    <li><strong>Resend</strong> sends the sign-in and notification emails, when that is switched on.</li>
+    <li>
+      <strong>Google</strong> receives your IP address when your browser loads the fonts and the
+      embedded maps on this site. This happens on almost every website and we do not control it.
+    </li>
+  </ul>
+  <p>
+    We will also hand over information if the law requires it, for example a valid order from a court
+    or the police.
+  </p>
+
+  <h2>What is stored in your browser</h2>
+  <p>
+    If you sign in to see your membership, your browser keeps a sign-in token so you do not have to
+    sign in again on every page, along with your first name so the menu can greet you. Both stay on
+    your own device and are removed when you sign out. There are no advertising cookies.
+  </p>
+
+  <h2>How long we keep it</h2>
+  <ul>
+    <li>Enquiries: until we have dealt with them, and then for up to a year in case you come back.</li>
+    <li>
+      Membership and payment records: while you are a member, and afterwards for as long as tax and
+      accounting rules require.
+    </li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>
+    Under India's Digital Personal Data Protection Act, 2023, you can ask us to show you what we hold
+    about you, correct anything wrong, or delete it. Write to{' '}
+    <a href={`mailto:${site.email}`}>{site.email}</a> and we will reply within thirty days. We may
+    need to keep payment records even after a deletion request, because tax rules require it.
+  </p>
+  <p>
+    If you are not happy with our answer, you may complain to the Data Protection Board of India.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    Students under eighteen are welcome in class, but the membership and this website should be set
+    up by a parent or guardian, who is the person we deal with.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    If this policy changes, the date at the top of this page changes with it. Members will be told
+    about anything significant.
+  </p>
+</Legal>

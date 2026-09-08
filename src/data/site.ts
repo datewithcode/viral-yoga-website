@@ -30,6 +30,16 @@ export type Session = {
   teacher?: string;
 };
 
+export type Benefit = {
+  title: string;           // the outcome, in the student's words
+  body: string;            // two sentences at most
+};
+
+export type Faq = {
+  q: string;
+  a: string;               // plain sentences; no HTML
+};
+
 export type Achievement = {
   year: string;            // '2024', or '' for something with no date
   title: string;           // one line, e.g. 'Gold medal, State Yoga Championship'
@@ -122,7 +132,7 @@ export const site = {
     },
     {
       name: 'Pranayama & meditation',
-      description: 'Breathing practices and guided sitting. Good for stress, sleep and blood pressure.',
+      description: 'Breathing practices and guided sitting. Students come to these for stress and sleep.',
       level: 'All levels',
       duration: '45 min',
     },
@@ -213,6 +223,95 @@ export const site = {
   },
 
   // --- Page text ---------------------------------------------------------------
+  // --- Legal pages ---------------------------------------------------------------
+  // Razorpay's compliance review checks that these exist and match the business.
+  // CONFIRM every line of /privacy, /terms and /refunds before submitting KYC.
+  legal: {
+    entityName: 'Viral Yoga',   // the name the business is registered under
+    updated: '8 September 2026',
+    // Days after purchase in which a refund can be asked for. Your policy, your call.
+    refundWindowDays: 7,
+    // Working days for the money to reach the payer once a refund is approved.
+    refundProcessingDays: '5 to 7',
+  },
+
+  // --- Google reviews ----------------------------------------------------------
+  // Leave `rating` empty and the whole line stays hidden. Never type a rating you
+  // have not earned: copy the real numbers from your Google Business profile.
+  google: {
+    rating: '',            // e.g. '4.9'
+    reviews: '',           // e.g. '127'
+    url: '',               // link to your Google Business listing
+  },
+
+  // Rough size of the studio, shown next to the Google rating. Keep it honest.
+  activeMembers: '200+',
+
+  // --- Why people come ----------------------------------------------------------
+  // Written as what a student wants, not as the name of a class. A beginner does
+  // not know what Hatha means; they know their back hurts.
+  // CHECK THESE CLAIMS before launch. Say nothing about curing or treating illness.
+  benefits: [
+    {
+      title: 'A back that stops complaining',
+      body: 'Most people arrive stiff from sitting all day, or sore in the neck and knees. We work slowly, and a teacher walks the room and corrects you rather than leaving you to copy a screen.',
+    },
+    {
+      title: 'Sleep, and a quieter head',
+      body: 'Every class ends with breathing practice. It is the part students mention most often when they tell us what changed after a few weeks.',
+    },
+    {
+      title: 'Strength that lasts into old age',
+      body: 'Getting up off the floor without your hands, carrying your own bags, touching your toes again. Our batches run from teenagers to people in their seventies.',
+    },
+  ] as Benefit[],
+
+  // --- Questions people actually ask --------------------------------------------
+  // CONFIRM EVERY ANSWER BELOW before launch. They describe studio policy, and
+  // the answers here are sensible guesses, not your rules.
+  faqs: [
+    {
+      q: 'Do I need to book, or can I just walk in?',
+      a: 'Walk in for any regular class. There is no booking. Come ten minutes early the first time so the teacher can ask about any injuries.',
+    },
+    {
+      q: 'I have never done yoga. Which class should I start with?',
+      a: 'Any Hatha class, or the beginners course if one is running. Tell the teacher it is your first time and they will keep an eye on you throughout.',
+    },
+    {
+      q: 'I am over sixty, or I have a knee or back problem. Can I still join?',
+      a: 'Yes. Tell the teacher before class what hurts. Postures get adapted for you, and nobody is pushed. We have students in their seventies.',
+    },
+    {
+      q: 'What should I wear and bring?',
+      a: 'Loose clothes you can bend in, and a bottle of water. Come on a fairly empty stomach, so nothing heavy for two hours before class.',
+    },
+    {
+      q: 'Do I need to bring a mat?',
+      a: 'Bring your own if you have one. If not, tell us when you arrive.',
+    },
+    {
+      q: 'Is there a separate batch for women?',
+      a: 'Ask us on WhatsApp for the current timings, and we will tell you which batches suit you.',
+    },
+    {
+      q: 'Does my membership work at both studios?',
+      a: 'Yes. One membership covers Anjar and Adipur. Come to whichever is closer that day.',
+    },
+    {
+      q: 'Can I pause my membership if I travel?',
+      a: 'Talk to us before you go and we will work something out.',
+    },
+    {
+      q: 'How do I pay?',
+      a: 'Cash or UPI at the studio, or UPI from the pricing section of this website. Send us the screenshot on WhatsApp and we will add it to your membership.',
+    },
+    {
+      q: 'What happens if I miss classes?',
+      a: 'Nothing. Come back when you can. Memberships run by date rather than by class count, so a missed week does not need making up.',
+    },
+  ] as Faq[],
+
   // All sentences on the page that make a claim about your studio. Edit freely.
   copy: {
     heroIntro: 'Small batches, early mornings and evenings, teachers who correct your posture. Your first class is free.',
@@ -227,6 +326,10 @@ export const site = {
     classesIntro: 'Every class is taught in person at both studios. If you are new, start with the beginners course or any Hatha class and tell the teacher it is your first time.',
     scheduleIntro: 'Walk in for any class. No booking needed for regular batches.',
     locationsIntro: 'Your membership works at both. Come to whichever is closer that day.',
+    benefitsHeading: 'Why people come to us',
+    benefitsCta: 'Your first class is free. Come and see.',
+    faqHeading: 'Questions people ask',
+    faqIntro: 'Anything not answered here, send us a message on WhatsApp. We reply the same day.',
     contactHeading: 'Book a free trial class',
     contactIntro: 'Tell us which studio and which time suits you. We reply the same day, usually within an hour during studio hours.',
   },
@@ -238,31 +341,43 @@ export const site = {
     {
       quote: 'I started at 52 with a stiff back and no confidence. A year later I can sit on the floor with my grandchildren again.',
       name: 'Hansaben P.',
+      age: '53',
+      since: 'Member for 1 year',
       detail: 'Anjar, Yoga for seniors',
     },
     {
       quote: 'The 6 am batch before work has become the best part of my day. The teachers actually correct your posture.',
       name: 'Rohan M.',
+      age: '31',
+      since: 'Member for 2 years',
       detail: 'Adipur, Hatha Yoga',
     },
     {
-      quote: 'My blood pressure readings improved after three months of pranayama. My doctor asked what changed.',
+      quote: 'After three months of daily breathing practice I sleep through the night again, which I had given up on.',
       name: 'Jayesh S.',
+      age: '46',
+      since: 'Member for 8 months',
       detail: 'Anjar, Pranayama & meditation',
     },
     {
       quote: 'I joined the beginners course with zero flexibility and a lot of doubt. Four weeks later I look forward to every class.',
       name: 'Priya D.',
+      age: '24',
+      since: 'Member for 4 months',
       detail: 'Adipur, Beginners course',
     },
     {
       quote: 'Power yoga at 6:30 pm is my stress release after the shop closes. Same batch, same people, two years now.',
       name: 'Mahesh K.',
+      age: '28',
+      since: 'Member for 2 years',
       detail: 'Adipur, Power yoga',
     },
     {
       quote: 'After my knee surgery the therapeutic sessions got me walking without pain. Slow, careful, and never pushed.',
       name: 'Kalpana B.',
+      age: '61',
+      since: 'Member for 6 months',
       detail: 'Anjar, Therapeutic yoga',
     },
   ],

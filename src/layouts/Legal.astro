@@ -1,0 +1,65 @@
+---
+// Shared shell for the policy pages. Razorpay's compliance review reads these,
+// and so do students, so they are written in plain sentences rather than in the
+// usual boilerplate.
+import Base from './Base.astro';
+import { site } from '../data/site';
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+---
+<Base title={title} description={description}>
+  <section class="section">
+    <div class="container-site max-w-2xl legal">
+      <h1 class="text-h2">{title}</h1>
+      <p class="mt-3 text-sm text-ink-soft">Last updated {site.legal.updated}</p>
+      <slot />
+      <div class="mt-14 border-t border-ink/15 pt-6 text-sm text-ink-soft">
+        <p>
+          Questions about this page? Write to{' '}
+          <a class="underline underline-offset-4" href={`mailto:${site.email}`}>{site.email}</a>{' '}
+          or call <a class="underline underline-offset-4" href={`tel:${site.phone.replace(/\s/g, '')}`}>{site.phone}</a>.
+        </p>
+        <p class="mt-4">
+          <a class="underline underline-offset-4" href="/privacy/">Privacy</a>{' · '}
+          <a class="underline underline-offset-4" href="/terms/">Terms</a>{' · '}
+          <a class="underline underline-offset-4" href="/refunds/">Refunds and cancellation</a>{' · '}
+          <a class="underline underline-offset-4" href="/">Back to the site</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* Only applies inside a policy page, so the rest of the site is untouched. */
+  .legal :global(h2) {
+    font-size: var(--text-h3);
+    line-height: var(--text-h3--line-height);
+    margin-top: 2.5rem;
+  }
+  .legal :global(p),
+  .legal :global(ul) {
+    margin-top: 1rem;
+    color: var(--color-ink-soft);
+  }
+  .legal :global(ul) {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+  .legal :global(li) {
+    margin-top: 0.5rem;
+  }
+  .legal :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .legal :global(address) {
+    margin-top: 1rem;
+    font-style: normal;
+    color: var(--color-ink-soft);
+  }
+</style>
