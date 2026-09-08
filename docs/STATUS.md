@@ -16,6 +16,7 @@ Everything is built and tested. The public website is live with placeholder cont
 | Feature | Built | Tested | Live |
 |---|---|---|---|
 | Public website: home, classes, timetable per studio, prices, gallery, both maps, contact form, WhatsApp button | Yes | Yes | Yes, placeholder content |
+| Teacher section: photo, short bio, and a dated list of achievements | Yes | Yes | Yes, placeholder content |
 | Pay by UPI directly (QR code and pay link per plan, send screenshot on WhatsApp) | Yes | Links checked, not yet opened in a real UPI app | No |
 | Membership page: sign in by email link, see days remaining | Yes | Yes | Yes, with limits (see section 9) |
 | Membership page: register and buy a plan online | Yes | Yes, with a stand-in for Razorpay | Hidden until domain + Razorpay exist (step 3) |
@@ -33,7 +34,7 @@ Everything is built and tested. The public website is live with placeholder cont
 | Deployment: Supabase project | Yes | Yes | Yes, free tier for now |
 | Email provider (Resend) | Not started | No | No |
 
-All names, phone numbers, addresses, timetable entries, testimonials and photos on the site are placeholders. The studio name is already set to Viral Yoga.
+All names, phone numbers, addresses, timetable entries, testimonials, achievements and photos on the site are placeholders, including the teacher's name and achievement list. The studio name is already set to Viral Yoga.
 
 ## 2b. How to check the security fixes yourself
 
@@ -107,6 +108,8 @@ Separate from these, **all content is still placeholder**: phone numbers, addres
 
 Not built at all: automatic WhatsApp reminders, owner two-factor login, member QR code for the desk. See section 4.
 
+The teacher section is a different case: it is **built and showing right now**, but with invented achievements. It disappears on its own if the achievements list is emptied, so it is safe to leave until you send the real ones.
+
 ## 5. What we need from you
 
 - [ ] Studio phone number, WhatsApp number, email
@@ -114,6 +117,8 @@ Not built at all: automatic WhatsApp reminders, owner two-factor login, member Q
 - [ ] The real weekly timetable for each studio
 - [ ] Photos: one wide hero shot, one about photo, up to six gallery images
 - [ ] Real testimonials, or tell me to hide that section
+- [ ] Teacher's name, role, two-line bio, and the list of achievements with the year of each. Send as many as you like, I put them newest first
+- [ ] One square photo of the teacher, 800 x 800 px or larger
 - [ ] Your UPI ID (the one that receives money)
 - [ ] Current member list as a spreadsheet: name, phone, email, plan, start date
 - [x] Supabase project created and connected (8 Sept)
