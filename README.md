@@ -159,6 +159,21 @@ What it gives you:
 - **Attention list.** A payment the system could not match (for example, paid straight to your Razorpay link without signing in, with an unusual amount) is kept in "Payments that need attention" on the admin page.
 - **Local testing** (optional, needs Docker): `supabase start`, then `supabase functions serve`. `supabase status` prints the local URL and keys.
 
+## Working with the code (branches)
+
+- `main` is what is live. Nobody commits to it directly.
+- `develop` is the working branch and the default on GitHub. New work happens on a short-lived branch off `develop`, named like `feat/member-import` or `fix/timetable-tabs`, and comes back through a pull request.
+- To release, open a pull request from `develop` into `main`. Merging it is the deploy trigger once Netlify is connected to the repository.
+- Every pull request runs the type check and the build automatically (see `.github/workflows/ci.yml`). Do not merge red.
+
+```bash
+git checkout develop && git pull
+git checkout -b feat/short-name
+# ... work, commit ...
+git push -u origin feat/short-name
+gh pr create --base develop
+```
+
 ## Project layout
 
 ```
