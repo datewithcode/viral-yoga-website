@@ -2,17 +2,20 @@
 
 Last updated: 8 September 2026
 
+Live site (placeholder content): https://startling-beignet-f4a10f.netlify.app  
+Code: https://github.com/datewithcode/viral-yoga-website
+
 ## 1. What this is
 
 A website for Viral Yoga's two studios in Anjar and Adipur. Students see classes, timetable and prices, buy a membership online, and check their own days remaining. The instructor sees who paid, who is about to expire, and who has asked about a trial class, and replies on WhatsApp with one tap.
 
 ## 2. Where we stand today
 
-Everything is built and tested on a laptop. Nothing is on the internet yet.
+Everything is built and tested. The public website is live with placeholder content; the membership and admin pages wait for the Supabase step.
 
 | Feature | Built | Tested | Live |
 |---|---|---|---|
-| Public website: home, classes, timetable per studio, prices, gallery, both maps, contact form, WhatsApp button | Yes | Yes | No |
+| Public website: home, classes, timetable per studio, prices, gallery, both maps, contact form, WhatsApp button | Yes | Yes | Yes, placeholder content |
 | Pay by UPI directly (QR code and pay link per plan, send screenshot on WhatsApp) | Yes | Links checked, not yet opened in a real UPI app | No |
 | Student page "My membership": sign in by email link, buy a plan online, see days remaining | Yes | Yes, with a stand-in for Razorpay | No |
 | Sign in first, then buy: online payments are tied to the student's account automatically | Yes | Yes | No |
@@ -24,7 +27,8 @@ Everything is built and tested on a laptop. Nothing is on the internet yet.
 | Optional online fee passed to the student (currently off) | Yes | Yes | No |
 | Backend: database, security rules, four server functions | Yes | Yes, including security cases | No |
 | Real Razorpay account | Not started | No | No |
-| Deployment: Netlify, Supabase project, email provider | Not started | No | No |
+| Deployment: Netlify | Yes | Yes | Yes, auto-deploys from GitHub `main` |
+| Deployment: Supabase project, email provider | Not started | No | No |
 
 All names, phone numbers, addresses, timetable entries, testimonials and photos on the site are placeholders. The studio name is already set to Viral Yoga.
 
@@ -58,7 +62,7 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 
 ## 4. What is not done
 
-- Nothing is deployed. No Supabase project, no Razorpay account, no email provider, not on Netlify.
+- Backend not deployed. No Supabase project, no Razorpay account, no email provider. The public site is on Netlify.
 - All content and photos are placeholders.
 - Real Razorpay has never been called. Every payment test used a stand-in that behaves like Razorpay. The first real test-mode payment is still to be done.
 - Not tested: opening the UPI links in a real UPI app; the contact form's fallback to Netlify if Supabase is unreachable; the admin Edit button; real email delivery through Resend.
