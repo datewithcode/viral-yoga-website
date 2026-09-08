@@ -128,6 +128,17 @@ The teacher section is a different case: it is **built and showing right now**, 
 - [ ] Instructor decision 1: online fee passed to the student, on or off
 - [ ] Instructor decision 2: keep direct UPI on the website, or desk-only
 
+## 5b. Check these the day Razorpay and the domain arrive
+
+Four things cannot be settled until those accounts exist. They are written down here so none of them is forgotten. Agreed with the owner on 8 September: leave them until then, then work through this list.
+
+- [ ] **Make one real test-mode payment end to end.** Every payment test so far runs against a stand-in server, not Razorpay. It behaves the way Razorpay is understood to behave, which is not the same as proof. Until a real test payment goes through, "payments are tested" carries that asterisk. Check the order, the membership, the student's page, and the admin list.
+- [ ] **Deliver a real webhook and watch what happens when it fails.** The site now asks Razorpay to try again after an unexpected error. If there is a bug, every retry hits the same bug, and Razorpay may switch the webhook off after a day. Confirm the retry behaviour on a real delivery, and check the Razorpay dashboard for a disabled webhook after testing.
+- [ ] **Test the 6-digit sign-in code with a real email.** It is written but has never run, because it needs the domain and Resend. Send yourself a code, sign in on a laptop with the email opened on a phone, and confirm it works. Only then set `signInEmailHasCode: true`.
+- [ ] **Decide about Razorpay payment links.** Only payments started from the website are recorded automatically now. A payment made through a Razorpay link sent on WhatsApp lands in the admin attention list to be added by hand. This was deliberate, for safety. If the studio wants to use payment links often, say so and it can be revisited.
+
+Also worth doing at the same time: ask the reviewer who wrote `docs/security-review-2026-09-08.md` for a second pass, which is what they recommended before live keys.
+
 ## 6. Steps, one at a time
 
 1. ~~Site live on Netlify, deployed from GitHub.~~ Done 8 Sept.
