@@ -111,7 +111,13 @@ import { isConfigured } from '../lib/supabase';
       const { error } = await supabase!.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: redirect } });
       msg.hidden = false;
       sendBtn.disabled = false; sendBtn.textContent = 'Send sign-in link';
-      if (error) { msg.textContent = 'Could not send the email: ' + error.message; return; }
+      if (error) {
+        const m = error.message.toLowerCase();
+        msg.textContent = m.includes('rate limit')
+          ? 'Too many sign-in emails were sent in the last hour. Please try again in a little while, or message us on WhatsApp.'
+          : 'Could not send the email: ' + error.message;
+        return;
+      }
       pendingEmail = email;
       if (site.pricing.signInEmailHasCode) {
         msg.textContent = `Email sent to ${email}. Type the code from it below, or open its link on this device. It works for one hour.`;
