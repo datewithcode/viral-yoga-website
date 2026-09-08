@@ -213,6 +213,7 @@ public/images/          your photos
 pages/admin.astro     owner admin page (needs Supabase)
   pages/my-membership.astro  student page (needs Supabase)
   lib/supabase.ts       browser client, shared helpers
+src/components/SignIn.astro  sign-in and sign-up form, one email field, no password
 supabase/migrations/    database schema (tables, policies)
 supabase/functions/_shared/payments.ts  plan prices, payment recording (shared)
 supabase/functions/create-order/      makes a Razorpay order for the signed-in student
