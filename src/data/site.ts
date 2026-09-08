@@ -185,6 +185,10 @@ export const site = {
     // server (rollout step 5). While false, the site shows only direct UPI and the
     // membership page shows days remaining without a Buy panel.
     onlinePaymentsEnabled: false,
+    // Set true once a custom email provider (Resend) is connected in Supabase and
+    // the sign-in email template includes {{ .Token }}. Until then the email has
+    // only a link, so the page must not ask for a code.
+    signInEmailHasCode: false,
     // Online fee added on top of the plan price when paying through Razorpay, in percent.
     // 0 = studio absorbs Razorpay's charge. 2.36 = pass Razorpay's 2% + 18% GST to the student.
     // Must match ONLINE_FEE_PERCENT in supabase/functions/_shared/payments.ts.
