@@ -104,9 +104,13 @@ import { isConfigured } from '../lib/supabase';
       e.preventDefault();
       const email = ($('otp-email') as HTMLInputElement).value.trim().toLowerCase();
       const msg = $('otp-msg');
+      const sendBtn = $('otp-form').querySelector('button') as HTMLButtonElement;
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+      msg.hidden = false; msg.textContent = 'Sending the email…';
       const redirect = `${location.origin}/my-membership/${wantedPlan ? '?plan=' + encodeURIComponent(wantedPlan) : ''}`;
       const { error } = await supabase!.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: redirect } });
       msg.hidden = false;
+      sendBtn.disabled = false; sendBtn.textContent = 'Send sign-in link';
       if (error) { msg.textContent = 'Could not send the email: ' + error.message; return; }
       pendingEmail = email;
       if (site.pricing.signInEmailHasCode) {
@@ -130,7 +134,7 @@ import { isConfigured } from '../lib/supabase';
       if (error) { codeMsg.hidden = false; codeMsg.textContent = 'That code did not work. Check the digits, or request a new email.'; return; }
       await render();
     });
-    $('signout').addEventListener('click', async () => { await supabase!.auth.signOut(); show('ask'); });
+    $('signout').addEventListener('click', async () => { await supabase!.auth.signOut(); try { localStorage.removeItem('vy-member-name'); } catch {} show('ask'); });
 
     // ---- Memberships ----------------------------------------------------------
     async function render() {
@@ -145,6 +149,7 @@ import { isConfigured } from '../lib/supabase';
       ]);
       show('result');
 
+      try { localStorage.setItem('vy-member-name', member?.name || ''); } catch {}
       if (member) {
         const nameEl = $('buy-name') as HTMLInputElement, phoneEl = $('buy-phone') as HTMLInputElement;
         if (!nameEl.value) nameEl.value = member.name ?? '';
