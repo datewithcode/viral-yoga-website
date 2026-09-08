@@ -181,6 +181,10 @@ export const site = {
   // --- Membership plans & payments ----------------------------------------------
   pricing: {
     intro: 'One membership works at both studios. Sign in with your email to pay online and see your days remaining any time, or pay by UPI and send us a screenshot.',
+    // Online payment through Razorpay. Keep false until Razorpay keys are set on the
+    // server (rollout step 5). While false, the site shows only direct UPI and the
+    // membership page shows days remaining without a Buy panel.
+    onlinePaymentsEnabled: false,
     // Online fee added on top of the plan price when paying through Razorpay, in percent.
     // 0 = studio absorbs Razorpay's charge. 2.36 = pass Razorpay's 2% + 18% GST to the student.
     // Must match ONLINE_FEE_PERCENT in supabase/functions/_shared/payments.ts.
