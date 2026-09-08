@@ -18,9 +18,9 @@ Everything is built and tested. The public website is live with placeholder cont
 | Public website: home, classes, timetable per studio, prices, gallery, both maps, contact form, WhatsApp button | Yes | Yes | Yes, placeholder content |
 | Teacher section: photo, short bio, and a dated list of achievements | Yes | Yes | Yes, placeholder content |
 | "Why people come": what students actually want, in their words | Yes | Yes | Yes, wording to confirm |
-| Common questions, with answers Google can show in search results | Yes | Yes | Yes, answers to confirm |
+| Common questions, answering what the instructor is asked over and over | Yes | Yes | Yes, answers to confirm |
 | Google rating shown on the page | Yes | Yes | Hidden until you send the real numbers |
-| Privacy, terms and refund pages, which Razorpay requires | Yes | Yes | Yes, terms and refunds to confirm |
+| Privacy, terms and refund pages, which Razorpay requires | Yes | Yes | Yes, terms to confirm. Refunds kept short on purpose, see section 5a |
 | Pay by UPI directly (QR code and pay link per plan, send screenshot on WhatsApp) | Yes | Links checked, not yet opened in a real UPI app | No |
 | Membership page: sign in by email link, see days remaining | Yes | Yes | Yes, with limits (see section 9) |
 | Membership page: register and buy a plan online | Yes | Yes, with a stand-in for Razorpay | Hidden until domain + Razorpay exist (step 3) |
@@ -122,7 +122,7 @@ The teacher section is a different case: it is **built and showing right now**, 
 - [ ] Photos: one wide hero shot, one about photo, up to six gallery images
 - [ ] Real testimonials, or tell me to hide that section. Send the person's age and how long they have come, which is what makes them convincing
 - [ ] Your Google Business listing link, and the rating and review count showing on it. Nothing is displayed until you send these, because a rating must never be invented
-- [ ] Read the ten answers in the questions section and correct anything that is not your policy
+- [ ] Read the ten answers in the questions section and correct anything that is not your policy. They are published in a form search engines read as fact, so a wrong answer matters
 - [ ] Read `/terms/` and `/refunds/` and confirm them, especially the refund window and how long refunds take. Razorpay's reviewers read these pages
 - [ ] Teacher's name, role, two-line bio, and the list of achievements with the year of each. Send as many as you like, I put them newest first
 - [ ] One square photo of the teacher, 800 x 800 px or larger
@@ -134,6 +134,12 @@ The teacher section is a different case: it is **built and showing right now**, 
 - [ ] Resend: create a free account at resend.com for sending emails, and verify the domain above
 - [ ] Instructor decision 1: online fee passed to the student, on or off
 - [ ] Instructor decision 2: keep direct UPI on the website, or desk-only
+
+## 5a. Not built yet: cancelling, pausing or refunding a membership
+
+Nothing in the system can shorten, pause or cancel a membership. If a refund is given in Razorpay today, the student's page keeps showing an active membership and the admin lists keep counting them, with no way to correct it except editing the database by hand.
+
+The refunds page was shortened on 8 September so it no longer promises pauses, extensions or part refunds, because promising them would be dishonest. It now says refunds are looked at case by case, which is true. **Build the capability before the pilot**, then the page can say more: an admin button to end or shorten a membership, and handling Razorpay's refund notification so a refunded membership stops showing as active.
 
 ## 5b. Check these the day Razorpay and the domain arrive
 

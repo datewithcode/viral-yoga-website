@@ -2,24 +2,41 @@
 import { site } from '../data/site';
 // Before online payment is on, only existing members can do anything after signing in.
 const signinLabel = site.pricing.onlinePaymentsEnabled ? 'Sign in / Register' : 'Sign in';
+
+// A link must not outlive the section it points at. Instructor.astro renders
+// nothing while its achievements list is empty, which is exactly what the setup
+// notes tell the owner to do while waiting for real content.
+const hasTeacher = site.instructor.achievements.length > 0;
 const links = [
   { href: '/#classes', label: 'Classes' },
   { href: '/#schedule', label: 'Schedule' },
   { href: '/#pricing', label: 'Pricing' },
   { href: '/#locations', label: 'Locations' },
   { href: '/#about', label: 'About' },
-  { href: '/#teacher', label: 'Teacher' },
+  ...(hasTeacher ? [{ href: '/#teacher', label: 'Teacher' }] : []),
   { href: '/#contact', label: 'Contact' },
 ];
+
+// Passed to the inline greeting below, so it needs no bundling and can run
+// before the first paint. Empty when Supabase is not configured.
+let projectRef = '';
+try {
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  if (supabaseUrl) projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+} catch {}
 ---
 <header class="sticky top-0 z-50 border-b border-ink/10 bg-chalk/90 backdrop-blur">
   <div class="container-site flex h-16 items-center justify-between gap-6">
     <a href="/" class="flex items-center gap-2.5 font-display text-xl tracking-tight text-ink" aria-label={`${site.name} home`}>
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-        <circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M14 5c-3 4-3 8 0 12 3-4 3-8 0-12Z" fill="currentColor"/>
-        <path d="M7 12c3 0 6 2 7 5-4 1-7-1-7-5ZM21 12c-3 0-6 2-7 5 4 1 7-1 7-5Z" fill="currentColor" opacity=".7"/>
-      </svg>
+      {site.logo ? (
+        <img src={site.logo} alt="" width="28" height="28" class="h-7 w-7 object-contain" />
+      ) : (
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M14 5c-3 4-3 8 0 12 3-4 3-8 0-12Z" fill="currentColor"/>
+          <path d="M7 12c3 0 6 2 7 5-4 1-7-1-7-5ZM21 12c-3 0-6 2-7 5 4 1 7-1 7-5Z" fill="currentColor" opacity=".7"/>
+        </svg>
+      )}
       <span>{site.shortName}</span>
     </a>
 
@@ -54,22 +71,35 @@ const links = [
   </nav>
 </header>
 
-<script>
+<script is:inline define:vars={{ projectRef }}>
   // Show the signed-in state in the header without loading the Supabase library
   // on every page: the session is read from the storage key supabase-js uses.
+  // Inline and unbundled on purpose, so the label is already right on the first
+  // paint instead of flicking from "Sign in" to the member's name a moment later.
   try {
-    const url = import.meta.env.PUBLIC_SUPABASE_URL as string | undefined;
-    const ref = url ? new URL(url).hostname.split('.')[0] : '';
-    const raw = ref ? localStorage.getItem(`sb-${ref}-auth-token`) : null;
-    const session = raw ? JSON.parse(raw) : null;
-    const valid = session?.access_token && (!session.expires_at || session.expires_at * 1000 > Date.now());
-    if (valid) {
-      const name = (localStorage.getItem('vy-member-name') || '').trim().split(' ')[0];
-      const label = name ? `Hi, ${name}` : 'Your membership';
-      document.querySelectorAll<HTMLAnchorElement>('[data-signin]').forEach((a) => { a.textContent = label; a.title = 'Your membership'; });
+    var raw = projectRef ? localStorage.getItem('sb-' + projectRef + '-auth-token') : null;
+    var session = raw ? JSON.parse(raw) : null;
+    // A refresh token means supabase-js can restore the session by itself, so an
+    // access token that expired an hour ago does not mean the member signed out.
+    if (session && session.refresh_token) {
+      // Use the cached name only if it was stored for the account signed in now.
+      // Otherwise the studio's shared computer greets whoever used it last.
+      var name = '';
+      try {
+        var cached = JSON.parse(localStorage.getItem('vy-member') || 'null');
+        var uid = session.user && session.user.id;
+        if (cached && uid && cached.id === uid) name = String(cached.name || '').trim().split(' ')[0];
+      } catch (e) {}
+      var label = name ? 'Hi, ' + name : 'Your membership';
+      document.querySelectorAll('[data-signin]').forEach(function (a) {
+        a.textContent = label;
+        a.title = 'Your membership';
+      });
     }
-  } catch {}
+  } catch (e) {}
+</script>
 
+<script>
   const toggle = document.getElementById('nav-toggle');
   const menu = document.getElementById('nav-mobile');
   if (toggle && menu) {

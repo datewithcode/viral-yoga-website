@@ -83,6 +83,15 @@ export const site = {
   // --- Images -------------------------------------------------------------------
   // Put your photos in /public/images and update the paths here.
   heroImage: '/images/hero.svg',
+  // Picture shown when the link is shared on WhatsApp, Facebook or LinkedIn.
+  // MUST be a JPG or PNG: none of them will render an SVG, so while this is
+  // empty and the hero is still a placeholder drawing, shared links show a
+  // blank card. Setting a real hero photo (a JPG) fixes it on its own.
+  ogImage: '',
+  // Square logo shown in the header instead of the lotus mark. PNG or SVG.
+  logo: '',
+  // Browser tab icon. Any image the browser can show.
+  favicon: '/favicon.svg',
   heroImageAlt: 'Students practising yoga in the studio hall',
   aboutImage: '/images/about.svg',
   gallery: [

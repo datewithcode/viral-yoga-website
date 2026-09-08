@@ -19,6 +19,7 @@
 // Expected: the newest card says "Expired membership" in red with a renew line,
 // older ones say "Earlier membership", and a membership still running says
 // "Current membership" in green. Delete .env afterwards.
+import { writeFileSync } from 'node:fs';
 const S = process.argv[2];
 const list = await (await fetch('http://127.0.0.1:9222/json')).json();
 const ws = new WebSocket(list.find((t) => t.type === 'page').webSocketDebuggerUrl);

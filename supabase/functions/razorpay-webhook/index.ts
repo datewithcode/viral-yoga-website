@@ -6,8 +6,13 @@
 //
 // Response codes decide whether Razorpay retries (it retries non-2xx for 24 h):
 //   200  recorded, duplicate, ignored event, or a payment we can never record
-//        automatically (it is logged with its reason for the admin attention list)
+//        automatically (logged with needs_attention so the owner sees it)
 //   500  something transient went wrong; please deliver this event again
+//
+// Only a permanent failure sets needs_attention. A transient one must not, or
+// the owner would see a payment that is seconds away from recording itself and
+// enter it by hand, giving one payment two memberships. After MAX_ATTEMPTS we
+// stop asking for retries and hand it to the owner instead.
 //
 // Deploy:  supabase functions deploy razorpay-webhook --no-verify-jwt
 // Secret:  supabase secrets set RAZORPAY_WEBHOOK_SECRET=...
@@ -15,6 +20,10 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
 import { PaymentRejected, hmacSha256Hex, json, recordPayment, timingSafeEqual } from "../_shared/payments.ts";
+
+// Deliveries of one event we will keep asking Razorpay to retry. Past this we
+// give up, answer 200, and put it in front of the owner.
+const MAX_ATTEMPTS = 5;
 
 export default {
   fetch: withSupabase({ auth: "none" }, async (req, ctx) => {
@@ -64,25 +73,45 @@ export default {
       logId = logged.id;
     }
 
-    const finish = async (fields: { processed: boolean; error?: string | null }, result: unknown, status = 200) => {
+    const finish = async (
+      fields: { processed: boolean; needs_attention?: boolean; error?: string | null },
+      result: unknown,
+      status = 200,
+    ) => {
       const { error } = await db.from("webhook_events").update(fields).eq("id", logId);
-      if (error) return json({ error: error.message }, 500);
+      // The payment has already been recorded or already rejected by this point.
+      // Failing to update our own log is not a reason to ask Razorpay to send a
+      // settled payment again for the next 24 hours, so the status code stands.
+      if (error) console.error(`webhook_events ${logId} update failed: ${error.message}`);
       return json(result, status);
     };
 
-    if (eventName !== "payment.captured") return finish({ processed: true }, { ok: true, ignored: eventName });
+    if (eventName !== "payment.captured") {
+      return finish({ processed: true, needs_attention: false }, { ok: true, ignored: eventName });
+    }
 
     try {
       const result = await recordPayment(db, evt?.payload?.payment?.entity);
-      return finish({ processed: true, error: result.note ?? null }, { ok: true, ...result });
+      return finish({ processed: true, needs_attention: false, error: result.note ?? null }, { ok: true, ...result });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       if (e instanceof PaymentRejected) {
-        // Final: keep it visible in admin, tell Razorpay not to retry.
-        return finish({ processed: false, error: message }, { ok: false, error: message });
+        // Final. Nothing will fix this on its own, so show the owner and stop.
+        return finish({ processed: false, needs_attention: true, error: message }, { ok: false, error: message });
       }
-      // Transient: keep the reason, ask Razorpay to try again.
-      return finish({ processed: false, error: `attempt ${attempts}: ${message}` }, { ok: false, error: message, retry: true }, 500);
+      if (attempts >= MAX_ATTEMPTS) {
+        // Retrying is not working. Stop the loop and hand it over, rather than
+        // leaving it invisible until Razorpay gives up on its own.
+        const giveUp = `gave up after ${attempts} attempts: ${message}`;
+        return finish({ processed: false, needs_attention: true, error: giveUp }, { ok: false, error: giveUp });
+      }
+      // Transient, and worth another try. Deliberately not marked for attention:
+      // the owner must not enter by hand a payment that is about to record itself.
+      return finish(
+        { processed: false, needs_attention: false, error: `attempt ${attempts}: ${message}` },
+        { ok: false, error: message, retry: true },
+        500,
+      );
     }
   }),
 };

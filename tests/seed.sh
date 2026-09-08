@@ -9,7 +9,7 @@ mk() {
   curl -s -X POST "$API_URL/auth/v1/admin/users" -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
     -H "content-type: application/json" --data "$1" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id') or d)"
 }
-for u in asha bala chitra dev eve; do
+for u in asha bala chitra dev eve farah gita; do
   body=$(printf '{"email":"%s@example.com","password":"Passw0rd!x","email_confirm":true}' "$u")
   echo "$u: $(mk "$body")"
 done
