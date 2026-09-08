@@ -30,6 +30,12 @@ export type Session = {
   teacher?: string;
 };
 
+export type Achievement = {
+  year: string;            // '2024', or '' for something with no date
+  title: string;           // one line, e.g. 'Gold medal, State Yoga Championship'
+  detail: string;          // optional second line, '' to leave it out
+};
+
 export type Plan = {
   name: string;          // e.g. "3 months"
   price: number;         // in rupees, digits only
@@ -260,6 +266,33 @@ export const site = {
       detail: 'Anjar, Therapeutic yoga',
     },
   ],
+
+  // --- Your teacher and their achievements --------------------------------------
+  // PLACEHOLDERS. The name, the photo and every line below are invented.
+  // Replace them with the real teacher's details. Set `achievements: []` to hide
+  // the whole section until you are ready.
+  instructor: {
+    name: 'Viralbhai Thakkar',
+    role: 'Founder and head teacher',
+    image: '/images/instructor.svg',
+    imageAlt: 'Portrait of the head teacher at the Anjar studio',
+    bio: [
+      'Viralbhai has taught yoga in Kutch since 2016, first in a single room in Anjar and now at both studios. He teaches classical Hatha yoga, pranayama, and therapeutic sessions for students recovering from injury.',
+      'He trains every teacher at Viral Yoga himself, and still takes the 6 am batch most mornings.',
+    ],
+    // Newest first. Leave `year` empty for anything without a date, and `detail`
+    // empty when the title says enough on its own.
+    achievements: [
+      { year: '2024', title: 'Judge, Gujarat State Yoga Championship', detail: 'Invited by the state yoga association for the senior category.' },
+      { year: '2023', title: 'Led the International Day of Yoga demonstration, Anjar', detail: 'Over 600 participants at the municipal ground.' },
+      { year: '2022', title: 'Level 2 Yoga Teacher certification, Yoga Certification Board', detail: 'Ministry of Ayush, Government of India.' },
+      { year: '2021', title: 'RYT 500, Yoga Alliance', detail: '' },
+      { year: '2019', title: 'Gold medal, Gujarat State Yoga Championship', detail: 'Traditional yoga, open category.' },
+      { year: '2018', title: 'Diploma in Yoga Therapy', detail: 'One-year course, with a focus on back and knee rehabilitation.' },
+      { year: '2016', title: 'Founded Viral Yoga in Anjar', detail: 'Eight students in the first batch.' },
+      { year: '', title: 'Taught more than 2,000 students across both studios', detail: '' },
+    ] as Achievement[],
+  },
 };
 
 export const DAY_ORDER: Session['day'][] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

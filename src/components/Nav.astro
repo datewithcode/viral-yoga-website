@@ -8,6 +8,7 @@ const links = [
   { href: '/#pricing', label: 'Pricing' },
   { href: '/#locations', label: 'Locations' },
   { href: '/#about', label: 'About' },
+  { href: '/#teacher', label: 'Teacher' },
   { href: '/#contact', label: 'Contact' },
 ];
 ---
@@ -22,7 +23,7 @@ const links = [
       <span>{site.shortName}</span>
     </a>
 
-    <nav class="hidden items-center gap-7 md:flex" aria-label="Main">
+    <nav class="hidden items-center gap-7 lg:flex" aria-label="Main">
       {links.map((l) => (
         <a href={l.href} class="text-[0.95rem] text-ink-soft hover:text-ink">{l.label}</a>
       ))}
@@ -32,7 +33,7 @@ const links = [
 
     <button
       id="nav-toggle"
-      class="md:hidden -mr-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-ink"
+      class="lg:hidden -mr-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-ink"
       aria-expanded="false"
       aria-controls="nav-mobile"
       aria-label="Open menu"
@@ -42,7 +43,7 @@ const links = [
     </button>
   </div>
 
-  <nav id="nav-mobile" class="hidden border-t border-ink/10 bg-chalk md:hidden" aria-label="Main mobile">
+  <nav id="nav-mobile" class="hidden border-t border-ink/10 bg-chalk lg:hidden" aria-label="Main mobile">
     <div class="container-site flex flex-col py-3">
       {links.map((l) => (
         <a href={l.href} class="py-3 text-lg text-ink border-b border-ink/5 last:border-0">{l.label}</a>

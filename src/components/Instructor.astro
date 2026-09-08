@@ -1,0 +1,43 @@
+---
+// The teacher, and what they have done. Hidden entirely while the achievements
+// list is empty, the same way the testimonials section hides itself.
+import { site } from '../data/site';
+const teacher = site.instructor;
+---
+{teacher.achievements.length > 0 && (
+<section id="teacher" class="section bg-sand/40">
+  <div class="container-site grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+    <div>
+      <img
+        src={teacher.image}
+        alt={teacher.imageAlt}
+        width="800"
+        height="800"
+        class="aspect-square w-full rounded-lg object-cover"
+        loading="lazy"
+      />
+      <p class="mt-8 text-sm uppercase tracking-[0.12em] text-ink-soft">Your teacher</p>
+      <h2 class="mt-2 text-h2">{teacher.name}</h2>
+      <p class="mt-2 text-ink-soft">{teacher.role}</p>
+      <div class="mt-5 space-y-4 text-ink-soft">
+        {teacher.bio.map((text) => <p>{text}</p>)}
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-h3">Achievements</h3>
+      <ol class="mt-6 divide-y divide-ink/10 border-t border-ink/15">
+        {teacher.achievements.map((a) => (
+          <li class="grid gap-1 py-5 sm:grid-cols-[5.5rem_minmax(0,1fr)] sm:gap-6">
+            <p class="font-display text-xl tabular-nums text-ink-soft">{a.year}</p>
+            <div>
+              <p class="font-medium">{a.title}</p>
+              {a.detail && <p class="mt-1 text-sm text-ink-soft">{a.detail}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</section>
+)}
