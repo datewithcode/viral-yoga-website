@@ -15,7 +15,7 @@ import { isConfigured } from '../lib/supabase';
       <div id="ask" hidden>
         <p id="ask-intro" class="mt-4 text-ink-soft">{site.pricing.onlinePaymentsEnabled
           ? 'New here? Sign in with your email to buy a membership. Already a member? The same sign-in shows your days remaining. No password: we email you a link.'
-          : 'Members: sign in with the email the studio has for you to see your plan and days remaining. No password: we email you a link.'}</p>
+          : 'Members: sign in with the email the studio has for you to see your plan and days remaining. No password: we email you a link. Not a member yet? Book a free trial from the home page.'}</p>
         <form id="otp-form" class="mt-6 flex flex-col gap-3 sm:flex-row">
           <input id="otp-email" type="email" required autocomplete="email" placeholder="you@example.com" class="field" />
           <button type="submit" class="btn-primary shrink-0">Send sign-in link</button>
@@ -90,7 +90,7 @@ import { isConfigured } from '../lib/supabase';
   if (supabase) {
     const show = (id: string) => {
       for (const s of ['ask', 'checking', 'result']) $(s).hidden = s !== id;
-      $('page-title').textContent = id === 'result' ? 'Your membership' : `Join ${site.name}`;
+      $('page-title').textContent = id === 'result' ? 'Your membership' : (site.pricing.onlinePaymentsEnabled ? `Join ${site.name}` : 'Member sign-in');
     };
     const wantedPlan = new URLSearchParams(location.search).get('plan');
     if (site.pricing.onlinePaymentsEnabled && wantedPlan && site.pricing.plans.some((p) => p.name === wantedPlan)) {
