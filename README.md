@@ -166,8 +166,10 @@ What it gives you:
 - **Online fee.** To pass Razorpay's charge to the student, set `onlineFeePercent: 2.36` in `src/data/site.ts` and `ONLINE_FEE_PERCENT = 2.36` in `supabase/functions/_shared/payments.ts`, then rebuild the site and redeploy `create-order`. The student sees "₹5,000 + ₹118 online payment fee" before paying. Leave both at 0 to absorb the fee.
 - **Importing your existing members.** Admin > Import members takes a CSV with columns name, phone, email, plan, start_date, paid_by. Same phone = same member, and re-running a file never duplicates memberships.
 - **Prices live in two places.** If you change prices in `src/data/site.ts`, change them in `supabase/functions/_shared/payments.ts` too and redeploy all three functions. The server price is what gets charged.
-- **Attention list.** A payment the system could not match (for example, paid straight to your Razorpay link without signing in, with an unusual amount) is kept in "Payments that need attention" on the admin page.
-- **Local testing** (optional, needs Docker): `supabase start`, then `supabase functions serve`. `supabase status` prints the local URL and keys.
+- **Attention list.** A payment the system could not match is kept in "Payments that need attention" on the admin page. Only payments that started from "Buy online" on the site are recorded automatically; a payment made through a Razorpay Payment Link or Button outside the site always lands here, and you add it by hand.
+- **Who gets linked to which member.** A signed-in student is matched to the member record with the same email (set by import or in admin). A phone number typed at checkout never selects a member, and a number that already belongs to someone else is refused. So give walk-in members' emails to the admin page and they link themselves on first sign-in.
+- **Limits.** Contact form: 3 messages per phone and 5 per connection every 10 minutes. Orders: an unpaid order is reused for 30 minutes, at most 5 new orders per member per hour.
+- **Local testing** (optional, needs Docker): `supabase start`, then `bash tests/run.sh`. It resets the local database, seeds test accounts, starts a mock Razorpay/Resend server and runs `tests/functions.sh` (payments, webhook retries, member linking, rate limits, row level security). The same run happens in CI on every pull request. `supabase status` prints the local URL and keys.
 
 ## Working with the code (branches)
 
@@ -205,6 +207,8 @@ supabase/functions/create-order/      makes a Razorpay order for the signed-in s
 supabase/functions/verify-payment/    confirms checkout and records the membership
 supabase/functions/razorpay-webhook/  backup path: Razorpay tells us about every payment
 supabase/functions/submit-enquiry/    saves contact-form messages for the admin page, emails a copy
+tests/                  local integration tests for the functions (see "Local testing")
+docs/security-review-2026-09-08.md  external review findings and how each was fixed
 netlify.toml            Netlify build settings
 vercel.json             Vercel build settings
 ```
