@@ -1,6 +1,6 @@
 # Viral Yoga website: status and next steps
 
-Last updated: 8 September 2026
+Last updated: 8 September 2026, after step 2 (backend live)
 
 Live site (placeholder content): https://startling-beignet-f4a10f.netlify.app  
 Code: https://github.com/datewithcode/viral-yoga-website
@@ -17,12 +17,13 @@ Everything is built and tested. The public website is live with placeholder cont
 |---|---|---|---|
 | Public website: home, classes, timetable per studio, prices, gallery, both maps, contact form, WhatsApp button | Yes | Yes | Yes, placeholder content |
 | Pay by UPI directly (QR code and pay link per plan, send screenshot on WhatsApp) | Yes | Links checked, not yet opened in a real UPI app | No |
-| Student page "My membership": sign in by email link, buy a plan online, see days remaining | Yes | Yes, with a stand-in for Razorpay | No |
+| Membership page: sign in by email link, see days remaining | Yes | Yes | Yes, with limits (see section 9) |
+| Membership page: buy a plan online | Yes | Yes, with a stand-in for Razorpay | Hidden until the Razorpay step |
 | Sign in first, then buy: online payments are tied to the student's account automatically | Yes | Yes | No |
-| Admin page: owner login, lists of active, due-for-reminder and lapsed members | Yes | Yes | No |
-| Admin: add a UPI or cash payment by hand | Yes | Yes | No |
-| Admin: one-tap WhatsApp renewal reminder, logged so you see who was reminded | Yes | Yes | No |
-| Admin: import your existing member list from a spreadsheet | Yes | Yes | No |
+| Admin page: owner login, lists of active, due-for-reminder and lapsed members | Yes | Yes | Yes, owner login works |
+| Admin: add a UPI or cash payment by hand | Yes | Yes | Yes |
+| Admin: one-tap WhatsApp renewal reminder, logged so you see who was reminded | Yes | Yes | Yes |
+| Admin: import your existing member list from a spreadsheet | Yes | Yes | Yes, not yet used |
 | Admin: enquiries from the contact form, with WhatsApp reply and Done | Yes | Yes | Yes |
 | Optional online fee passed to the student (currently off) | Yes | Yes | No |
 | Backend: database, security rules, four server functions | Yes | Yes, including security cases | Yes, Supabase project Viral-Yoga (Mumbai) |
@@ -63,7 +64,7 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 
 ## 4. What is not done
 
-- No Razorpay account and no email provider yet. Online payment is switched off on the site until Razorpay is connected.
+- No Razorpay account, no email provider, no domain yet. Online payment is switched off on the site until Razorpay is connected.
 - All content and photos are placeholders.
 - Real Razorpay has never been called. Every payment test used a stand-in that behaves like Razorpay. The first real test-mode payment is still to be done.
 - Not tested: opening the UPI links in a real UPI app; the contact form's fallback to Netlify if Supabase is unreachable; the admin Edit button; real email delivery through Resend.
@@ -78,23 +79,24 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 - [ ] Real testimonials, or tell me to hide that section
 - [ ] Your UPI ID (the one that receives money)
 - [ ] Current member list as a spreadsheet: name, phone, email, plan, start date
-- [ ] Supabase: sign in when I send the link (free account)
+- [x] Supabase project created and connected (8 Sept)
+- [ ] Domain: buy `viralyoga.in` (about ₹500 to ₹900 a year) at Namecheap or GoDaddy India, domain only, no add-ons. Needed for the email provider and the final web address. Waits until you are ready to spend.
 - [ ] Razorpay: create an account at razorpay.com. Test mode works immediately; start KYC in parallel for live payments
-- [ ] Resend: create a free account at resend.com for sending emails, and verify your domain
+- [ ] Resend: create a free account at resend.com for sending emails, and verify the domain above
 - [ ] Instructor decision 1: online fee passed to the student, on or off
 - [ ] Instructor decision 2: keep direct UPI on the website, or desk-only
 
-## 6. Go-live steps, in order
+## 6. Steps, one at a time
 
-1. Put real content and photos in, rebuild, check visually.
-2. Deploy the public site to Netlify (drag the `dist` folder), enable form notifications, attach the domain.
-3. Create the Supabase project, apply the database, deploy the four functions, set the secrets, create the owner login, connect Resend for emails, raise the sign-in email limit.
-4. Connect Razorpay: keys, webhook, automatic capture. Make one test-mode payment end to end. Then switch to live keys.
-5. Import the member list. Instructor checks the admin lists match reality.
-6. Upgrade Supabase to Pro. Confirm backups are on.
-7. Announce the My membership link to members.
+1. ~~Site live on Netlify, deployed from GitHub.~~ Done 8 Sept.
+2. ~~Supabase backend without payments: database, functions, admin login, enquiries.~~ Done 8 Sept.
+3. **Real content and photos.** Next. Needs the content list in section 5. No money needed.
+4. **Security pass and email.** Buy the domain, point the site at it, connect Resend, raise the sign-in email limit, editable sign-in email with a code, plus the remaining hardening (content security policy header, order rate limit, owner two-factor guidance). Money: domain.
+5. **Razorpay, last.** Account, test-mode payment end to end, then live keys. Fee decision applied. Online payment switched on.
+6. **Pilot** with the instructor and about ten members for one to two weeks. Real sign-ins, one or two real payments, reminders from admin. Fix what they trip over.
+7. **Launch.** Supabase Pro, backups confirmed, announce the Membership link to all members. Money: about ₹2,100 a month.
 
-Steps 1 and 2 can happen the same day the content arrives. Steps 3 to 6 take about a day once the accounts exist.
+Member import can happen at any time from step 2 onward; it does not block anything.
 
 ## 7. Costs
 
@@ -122,13 +124,26 @@ If the online fee is passed to the student, they pay: 1 month ₹2,047, 3 months
 
 ## 9. Known limits to remember
 
+- **Sign-in link is device-bound.** The link signs in only the device that opens it. Requesting on a laptop and opening the email on a phone signs in the phone, not the laptop. There is no cross-device sync. After step 4 the email also carries a code to type on the device you are using; until then, open the link on the same device.
+- **Until step 4, sign-in emails reach only supabase.root@gmail.com** and only a few per hour. The email template cannot be edited on the free tier without a custom email provider.
 - Supabase allows 30 sign-in emails per hour by default. This must be raised in the dashboard before launch, or a busy launch day fails.
 - Free Supabase projects pause after 7 days without activity. Pro never pauses.
 - Imported memberships record today's plan price, not what was paid back then.
 - Students who pay by direct UPI are not linked to an account until the instructor adds their email.
 - A paused or offline backend does not lose payments: Razorpay keeps its own record and retries for 24 hours, and anything missed appears in Razorpay's dashboard.
 
-## 10. Running it and finding things
+## 10. Things that cost money, all optional until the step that needs them
+
+| Item | When | Cost |
+|---|---|---|
+| Domain `viralyoga.in` | Step 4 | About ₹500 to ₹900 a year |
+| Razorpay fees | Step 5 onward | About 2.36% per online payment, or passed to the student |
+| Supabase Pro | Step 7, launch | About ₹2,100 a month |
+| Automatic WhatsApp reminders | Future | About ₹0.12 per message plus setup, or a provider at ₹1,000 to ₹2,500 a month |
+
+Everything else (Netlify, Supabase free tier, Resend at this volume, tap-to-send reminders) is free.
+
+## 11. Running it and finding things
 
 ```bash
 cd /Users/vaibhavthukral/Documents/Yoga_website
