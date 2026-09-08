@@ -40,13 +40,17 @@ Then run `npm run build` again.
 
 Put your photos in `public/images/` and update the paths in `src/data/site.ts`.
 
-| Placeholder today          | Replace with                                  | Suggested size   |
-| -------------------------- | --------------------------------------------- | ---------------- |
-| `/images/hero.svg`         | `/images/hero.jpg`, your best wide studio shot | 1920 x 1200 px   |
-| `/images/about.svg`        | `/images/about.jpg`, a teacher with students   | 1200 x 1500 px   |
-| `/images/gallery-1..6.svg` | `/images/gallery-1.jpg` and so on              | 1200 x 900 px    |
+The site crops each photo to the shape below automatically, so send the closest shape you have. Phone photos are fine if they are sharp.
 
-Keep JPGs under ~400 KB each so the site stays fast on mobile data. [squoosh.app](https://squoosh.app) is a free tool for this.
+| Section | How many | Shape | Send at least | File | Notes |
+| --- | --- | --- | --- | --- | --- |
+| Hero (top of home page) | 1 | Wide, 16:10 | 1920 x 1200 px | `/images/hero.jpg` | Headline sits bottom-left over a dark fade. Keep the important part of the photo in the upper-right two-thirds. Landscape only. |
+| About | 1 | Portrait, 4:5 | 1200 x 1500 px | `/images/about.jpg` | Teacher with students, or the hall. |
+| Gallery | 6 | Landscape, 4:3 | 1200 x 900 px | `/images/gallery-1.jpg` to `gallery-6.jpg` | Mix of both studios. The first one shows larger on phones. |
+| Social preview (link card on WhatsApp, Facebook) | optional | 1.91:1 | 1200 x 630 px | `/images/og.jpg` | The hero is reused if not supplied. |
+| Logo | optional | Square | 512 x 512 px, PNG with transparent background or SVG | `/images/logo.png` | Replaces the lotus mark in the header and the favicon. |
+
+Formats: JPG for photos, PNG or SVG for a logo. Keep JPGs under ~400 KB each so the site stays fast on mobile data. [squoosh.app](https://squoosh.app) is a free tool for resizing and compressing. After adding files, update the paths in `src/data/site.ts`.
 
 ### Google Maps
 
