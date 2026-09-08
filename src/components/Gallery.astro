@@ -1,0 +1,15 @@
+---
+import { site } from '../data/site';
+---
+<section id="gallery" class="section bg-ink text-chalk">
+  <div class="container-site">
+    <h2 class="text-h2">Inside the studios</h2>
+    <ul class="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+      {site.gallery.map((g, i) => (
+        <li class:list={['overflow-hidden rounded-md', { 'col-span-2 row-span-2 md:col-span-1 md:row-span-1': i === 0 }]}>
+          <img src={g.src} alt={g.alt} class="aspect-[4/3] h-full w-full object-cover" loading="lazy" />
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette: Kutch-inspired. Indigo ink, cool chalk, ajrakh red, sage, sand. */
+  --color-ink: #1e2b48;
+  --color-ink-soft: #3a4766;
+  --color-chalk: #f5f4ee;
+  --color-sand: #e7e0cf;
+  --color-sand-deep: #d3c8ad;
+  --color-madder: #a63d2f;
+  --color-madder-deep: #82301f;
+  --color-sage: #6e8b6a;
+  --color-sage-soft: #dbe4d5;
+
+  --font-display: "Fraunces", "Georgia", "Times New Roman", serif;
+  --font-sans: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+
+  --text-display: clamp(2.6rem, 6.5vw, 5.25rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.02em;
+  --text-h2: clamp(1.9rem, 3.6vw, 2.9rem);
+  --text-h2--line-height: 1.1;
+  --text-h2--letter-spacing: -0.015em;
+  --text-h3: 1.35rem;
+  --text-h3--line-height: 1.25;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem;
+  }
+  body {
+    @apply bg-chalk text-ink font-sans antialiased;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    text-wrap: balance;
+  }
+  p { max-width: 62ch; }
+  :focus-visible {
+    outline: 3px solid var(--color-madder);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+}
+
+@layer components {
+  .container-site {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-medium leading-none transition-colors bg-madder text-chalk hover:bg-madder-deep;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-medium leading-none transition-colors border border-ink/30 text-ink hover:border-ink hover:bg-ink hover:text-chalk;
+  }
+  .btn-light {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-medium leading-none transition-colors border border-chalk/60 text-chalk hover:bg-chalk hover:text-ink;
+  }
+  .section {
+    @apply py-16 sm:py-24;
+  }
+  .field {
+    @apply w-full rounded-md border border-ink/25 bg-white px-4 py-3 text-ink placeholder:text-ink/40 focus:border-ink focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-ink/20;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-soft;
+  }
+}

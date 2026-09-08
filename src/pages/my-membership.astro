@@ -1,0 +1,201 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../data/site';
+import { isConfigured } from '../lib/supabase';
+---
+<Base title="My membership" description="Buy a membership or check your days remaining.">
+  <section class="section">
+    <div class="container-site max-w-xl">
+      <h1 class="text-h2">My membership</h1>
+
+      {!isConfigured && (
+        <p class="mt-4 text-ink-soft">Online membership is not set up yet. Please pay by UPI on the <a href="/#pricing" class="underline underline-offset-4">pricing section</a> or contact the studio.</p>
+      )}
+
+      <div id="ask" hidden>
+        <p id="ask-intro" class="mt-4 text-ink-soft">Sign in with your email to buy a membership or see how many days you have left. No password: we email you a link.</p>
+        <form id="otp-form" class="mt-6 flex flex-col gap-3 sm:flex-row">
+          <input id="otp-email" type="email" required autocomplete="email" placeholder="you@example.com" class="field" />
+          <button type="submit" class="btn-primary shrink-0">Send sign-in link</button>
+        </form>
+        <p id="otp-msg" class="mt-3 text-sm text-ink-soft" hidden></p>
+        <p class="mt-8 text-sm text-ink-soft">
+          Prefer to pay by UPI without signing in? Use the buttons on the{' '}
+          <a class="underline underline-offset-4" href="/#pricing">pricing section</a>.
+        </p>
+      </div>
+
+      <div id="checking" class="mt-4 text-ink-soft" hidden>Checking…</div>
+
+      <div id="result" hidden>
+        <p class="mt-2 text-sm text-ink-soft">Signed in as <span id="who-email" class="font-medium text-ink"></span>. <button id="signout" class="underline underline-offset-4">Sign out</button></p>
+
+        <div id="cards" class="mt-6 space-y-4"></div>
+        <p id="none" class="mt-4 text-ink-soft" hidden>
+          No membership yet on this account. Buy one below, or if you already paid with different details, message us on{' '}
+          <a class="underline underline-offset-4" href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener">WhatsApp</a>.
+        </p>
+
+        <div id="buy" class="mt-10 rounded-lg border border-ink/15 bg-sand/30 p-6">
+          <h2 class="text-h3">Buy a membership</h2>
+          <p class="mt-1 text-sm text-ink-soft">Pay by UPI, card or net banking. Your membership starts today and works at both studios.</p>
+          <form id="buy-form" class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="buy-name" class="label">Your name</label>
+              <input id="buy-name" required minlength="2" autocomplete="name" class="field" />
+            </div>
+            <div>
+              <label for="buy-phone" class="label">Mobile (WhatsApp)</label>
+              <input id="buy-phone" required inputmode="tel" autocomplete="tel" placeholder="98765 43210" class="field" />
+            </div>
+            <fieldset class="sm:col-span-2">
+              <legend class="label">Plan</legend>
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {site.pricing.plans.map((p, i) => (
+                  <label class="cursor-pointer rounded-md border border-ink/20 bg-chalk p-3 text-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-chalk">
+                    <input type="radio" name="plan" value={p.name} class="sr-only" checked={i === 0} />
+                    <span class="block text-sm">{p.name}</span>
+                    <span class="block font-display text-xl">₹{p.price.toLocaleString('en-IN')}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div class="sm:col-span-2">
+              <p id="pay-breakdown" class="mb-3 text-sm text-ink-soft"></p>
+              <button type="submit" id="pay-btn" class="btn-primary w-full sm:w-auto">Pay now</button>
+              <p id="pay-msg" class="mt-3 text-sm" hidden></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script is:inline src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+  import { supabase, inr, formatDate, daysUntil } from '../lib/supabase';
+  import { site } from '../data/site';
+
+  const $ = (id: string) => document.getElementById(id)!;
+
+  if (supabase) {
+    const show = (id: string) => { for (const s of ['ask', 'checking', 'result']) $(s).hidden = s !== id; };
+    const wantedPlan = new URLSearchParams(location.search).get('plan');
+    if (wantedPlan && site.pricing.plans.some((p) => p.name === wantedPlan)) {
+      $('ask-intro').textContent = `You chose the ${wantedPlan} plan. Sign in with your email to pay. No password: we email you a link.`;
+      const radio = document.querySelector<HTMLInputElement>(`input[name="plan"][value="${wantedPlan}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    // ---- Sign in --------------------------------------------------------------
+    $('otp-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = ($('otp-email') as HTMLInputElement).value.trim().toLowerCase();
+      const msg = $('otp-msg');
+      const redirect = `${location.origin}/my-membership/${wantedPlan ? '?plan=' + encodeURIComponent(wantedPlan) : ''}`;
+      const { error } = await supabase!.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: redirect } });
+      msg.hidden = false;
+      msg.textContent = error ? 'Could not send the link: ' + error.message : `Link sent to ${email}. Open it on this device. It works for one hour.`;
+    });
+    $('signout').addEventListener('click', async () => { await supabase!.auth.signOut(); show('ask'); });
+
+    // ---- Memberships ----------------------------------------------------------
+    async function render() {
+      const { data: { session } } = await supabase!.auth.getSession();
+      if (!session) return show('ask');
+      show('checking');
+      $('who-email').textContent = session.user.email ?? '';
+
+      const [{ data: memberships }, { data: member }] = await Promise.all([
+        supabase!.from('memberships').select('plan, amount_paise, starts_on, ends_on').order('ends_on', { ascending: false }),
+        supabase!.from('members').select('name, phone').limit(1).maybeSingle(),
+      ]);
+      show('result');
+
+      if (member) {
+        const nameEl = $('buy-name') as HTMLInputElement, phoneEl = $('buy-phone') as HTMLInputElement;
+        if (!nameEl.value) nameEl.value = member.name ?? '';
+        if (!phoneEl.value) phoneEl.value = member.phone ?? '';
+      }
+
+      const cards = $('cards');
+      if (!memberships?.length) { $('none').hidden = false; cards.innerHTML = ''; return; }
+      $('none').hidden = true;
+      cards.innerHTML = memberships.map((m: any, i: number) => {
+        const d = daysUntil(m.ends_on);
+        const status = d > 0 ? `${d} day${d === 1 ? '' : 's'} remaining` : d === 0 ? 'Ends today' : `Ended ${-d} day${d === -1 ? '' : 's'} ago`;
+        const current = i === 0;
+        return `
+          <div class="rounded-lg border p-6 ${current && d >= 0 ? 'border-sage bg-sage-soft/40' : 'border-ink/15'}">
+            <p class="text-sm text-ink-soft">${current ? 'Current' : 'Earlier'} membership</p>
+            <p class="mt-1 font-display text-3xl">${m.plan}</p>
+            <p class="mt-3 text-lg ${d < 0 && current ? 'text-madder' : ''}">${status}</p>
+            <p class="mt-1 text-sm text-ink-soft">${formatDate(m.starts_on)} to ${formatDate(m.ends_on)} · ${inr(m.amount_paise)}</p>
+          </div>`;
+      }).join('');
+    }
+
+    // ---- Buy ---------------------------------------------------------------------
+    const payBtn = $('pay-btn') as HTMLButtonElement;
+    const rupees = (n: number) => '₹' + n.toLocaleString('en-IN');
+    function updateBreakdown() {
+      const plan = document.querySelector<HTMLInputElement>('input[name="plan"]:checked')?.value;
+      const price = site.pricing.plans.find((p) => p.name === plan)?.price ?? 0;
+      const fee = Math.round(price * site.pricing.onlineFeePercent / 100);
+      const total = price + fee;
+      $('pay-breakdown').textContent = fee > 0 ? `${rupees(price)} + ${rupees(fee)} online payment fee = ${rupees(total)}` : '';
+      payBtn.textContent = `Pay ${rupees(total)}`;
+    }
+    document.querySelectorAll<HTMLInputElement>('input[name="plan"]').forEach((r) => r.addEventListener('change', updateBreakdown));
+    updateBreakdown();
+    const payMsg = $('pay-msg');
+    const say = (text: string, bad = false) => { payMsg.hidden = false; payMsg.textContent = text; payMsg.className = `mt-3 text-sm ${bad ? 'text-madder' : 'text-ink-soft'}`; };
+
+    $('buy-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const plan = (document.querySelector<HTMLInputElement>('input[name="plan"]:checked'))?.value;
+      const name = ($('buy-name') as HTMLInputElement).value.trim();
+      const phone = ($('buy-phone') as HTMLInputElement).value.trim();
+      if (!plan) return say('Choose a plan.', true);
+      payBtn.disabled = true; say('Preparing payment…');
+
+      const { data: order, error } = await supabase!.functions.invoke('create-order', { body: { plan, name, phone } });
+      if (error || !order?.order_id) {
+        let detail = error?.message ?? 'Unknown error';
+        try { detail = (await (error as any)?.context?.json())?.error ?? detail; } catch {}
+        payBtn.disabled = false; return say('Could not start payment: ' + detail, true);
+      }
+
+      const Razorpay = (window as any).Razorpay;
+      if (!Razorpay) { payBtn.disabled = false; return say('Payment window could not load. Check your connection and try again.', true); }
+
+      const rzp = new Razorpay({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        name: site.name,
+        description: `${order.plan} membership`,
+        order_id: order.order_id,
+        prefill: order.prefill,
+        theme: { color: '#1e2b48' },
+        modal: { ondismiss: () => { payBtn.disabled = false; say('Payment cancelled. Nothing was charged.'); } },
+        handler: async (resp: any) => {
+          say('Payment received. Activating your membership…');
+          const { data, error } = await supabase!.functions.invoke('verify-payment', { body: resp });
+          payBtn.disabled = false;
+          if (error) return say('Paid, but we could not confirm it yet. It will appear within a few minutes. If not, message us with payment ID ' + resp.razorpay_payment_id, true);
+          if (data?.ok) { say(`Done. Your ${data.plan} membership is active.`); await render(); }
+          else if (data?.pending) say('Payment is being confirmed by the bank. Refresh this page in a minute.');
+          else say('Paid, but something went wrong recording it. Message us with payment ID ' + resp.razorpay_payment_id, true);
+        },
+      });
+      rzp.on('payment.failed', (r: any) => { payBtn.disabled = false; say('Payment failed: ' + (r?.error?.description ?? 'try again'), true); });
+      rzp.open();
+    });
+
+    supabase.auth.onAuthStateChange(() => { render(); });
+    render();
+  }
+</script>

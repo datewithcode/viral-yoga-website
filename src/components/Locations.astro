@@ -1,0 +1,42 @@
+---
+import { site } from '../data/site';
+---
+<section id="locations" class="section bg-sand/40">
+  <div class="container-site">
+    <h2 class="text-h2">Two studios in Kutch</h2>
+    <p class="mt-4 max-w-2xl text-ink-soft">{site.copy.locationsIntro}</p>
+
+    <div class="mt-12 grid gap-8 lg:grid-cols-2">
+      {site.locations.map((l) => (
+        <article class="overflow-hidden rounded-lg border border-ink/15 bg-chalk">
+          <div class="aspect-[16/10] w-full bg-sand">
+            <iframe
+              src={l.mapEmbedUrl}
+              title={`Map showing ${l.name}`}
+              class="h-full w-full"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div class="grid gap-6 p-6 sm:grid-cols-2 sm:p-7">
+            <div>
+              <h3 class="text-h3">{l.name}</h3>
+              <address class="mt-3 not-italic leading-relaxed text-ink-soft">
+                {l.addressLines.map((line) => <span class="block">{line}</span>)}
+              </address>
+              <a href={l.mapLink} target="_blank" rel="noopener" class="mt-3 inline-block text-sm underline underline-offset-4">Open in Google Maps</a>
+            </div>
+            <div>
+              <p class="font-medium">Hours</p>
+              <ul class="mt-3 space-y-1 text-ink-soft">
+                {l.hours.map((h) => <li>{h}</li>)}
+              </ul>
+              <a href={`tel:${l.phone.replace(/\s/g, '')}`} class="mt-3 inline-block text-sm underline underline-offset-4">{l.phone}</a>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>

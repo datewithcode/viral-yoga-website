@@ -1,0 +1,75 @@
+---
+import { site, DAY_ORDER, DAY_NAMES } from '../data/site';
+
+const byLocation = site.locations.map((loc) => ({
+  loc,
+  days: DAY_ORDER.map((day) => ({
+    day,
+    sessions: site.schedule.filter((s) => s.location === loc.id && s.day === day),
+  })).filter((d) => d.sessions.length > 0),
+}));
+---
+<section id="schedule" class="section">
+  <div class="container-site">
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+      <div class="max-w-2xl">
+        <h2 class="text-h2">Weekly timetable</h2>
+        <p class="mt-4 text-ink-soft">{site.copy.scheduleIntro}</p>
+      </div>
+      <div class="inline-flex self-start rounded-full border border-ink/20 p-1" role="tablist" aria-label="Choose a studio">
+        {site.locations.map((l, i) => (
+          <button
+            role="tab"
+            id={`tab-${l.id}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            aria-controls={`panel-${l.id}`}
+            data-schedule-tab={l.id}
+            class="rounded-full px-5 py-2 text-sm font-medium text-ink-soft transition-colors aria-selected:bg-ink aria-selected:text-chalk"
+          >{l.name.replace(' studio', '')}</button>
+        ))}
+      </div>
+    </div>
+
+    {byLocation.map(({ loc, days }, i) => (
+      <div
+        id={`panel-${loc.id}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${loc.id}`}
+        data-schedule-panel={loc.id}
+        class:list={['mt-10', { hidden: i !== 0 }]}
+      >
+        <div class="grid overflow-hidden rounded-lg border-t border-l border-ink/15 md:grid-cols-2 xl:grid-cols-3">
+          {days.map(({ day, sessions }) => (
+            <div class="border-b border-r border-ink/15 bg-chalk p-5 sm:p-6">
+              <h3 class="font-display text-xl">{DAY_NAMES[day]}</h3>
+              <ul class="mt-4 divide-y divide-ink/10">
+                {sessions.map((s) => (
+                  <li class="flex items-baseline justify-between gap-4 py-2.5">
+                    <span class="font-medium">{s.className}</span>
+                    <span class="shrink-0 text-sm text-ink-soft tabular-nums">{s.time}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p class="mt-5 text-sm text-ink-soft">
+          {loc.name}: {loc.hours.join('. ')}. Therapeutic sessions are by appointment,{' '}
+          <a href="#contact" class="underline underline-offset-4">message us</a> to fix a time.
+        </p>
+      </div>
+    ))}
+  </div>
+</section>
+
+<script>
+  const tabs = document.querySelectorAll<HTMLButtonElement>('[data-schedule-tab]');
+  const panels = document.querySelectorAll<HTMLElement>('[data-schedule-panel]');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.scheduleTab;
+      tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+      panels.forEach((p) => p.classList.toggle('hidden', p.dataset.schedulePanel !== id));
+    });
+  });
+</script>

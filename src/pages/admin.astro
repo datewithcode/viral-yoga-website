@@ -1,0 +1,480 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../data/site';
+import { isConfigured } from '../lib/supabase';
+---
+<Base title="Admin" description="Studio admin">
+  <section class="section">
+    <div class="container-site">
+      {!isConfigured && (
+        <div class="rounded-lg border border-madder/40 bg-madder/5 p-6">
+          <h1 class="text-h3">Supabase is not configured</h1>
+          <p class="mt-2 text-ink-soft">Copy <code>.env.example</code> to <code>.env</code>, fill in the two values, and rebuild.</p>
+        </div>
+      )}
+
+      <div id="login" class="mx-auto max-w-sm" hidden>
+        <h1 class="text-h2">Studio admin</h1>
+        <form id="login-form" class="mt-8 space-y-4">
+          <div>
+            <label for="login-email" class="label">Email</label>
+            <input id="login-email" type="email" required autocomplete="username" class="field" />
+          </div>
+          <div>
+            <label for="login-password" class="label">Password</label>
+            <input id="login-password" type="password" required autocomplete="current-password" class="field" />
+          </div>
+          <button type="submit" class="btn-primary w-full">Sign in</button>
+          <p id="login-error" class="text-sm text-madder" hidden></p>
+        </form>
+      </div>
+
+      <div id="app" hidden>
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 class="text-h2">Members</h1>
+            <p class="mt-2 text-ink-soft" id="summary"></p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button id="show-add" class="btn-primary">Add payment</button>
+            <button id="show-import" class="btn-ghost">Import members</button>
+            <button id="logout" class="btn-ghost">Sign out</button>
+          </div>
+        </div>
+
+        <form id="add-form" class="mt-8 grid gap-4 rounded-lg border border-ink/15 bg-sand/30 p-6 sm:grid-cols-2 lg:grid-cols-3" hidden>
+          <h2 class="text-h3 sm:col-span-2 lg:col-span-3">Add a payment received by UPI or cash</h2>
+          <div>
+            <label for="add-name" class="label">Name</label>
+            <input id="add-name" name="name" required class="field" />
+          </div>
+          <div>
+            <label for="add-phone" class="label">Phone</label>
+            <input id="add-phone" name="phone" required inputmode="tel" placeholder="98765 43210" class="field" />
+          </div>
+          <div>
+            <label for="add-email" class="label">Email (for their login, optional)</label>
+            <input id="add-email" name="email" type="email" class="field" />
+          </div>
+          <div>
+            <label for="add-plan" class="label">Plan</label>
+            <select id="add-plan" name="plan" class="field">
+              {site.pricing.plans.map((p) => <option value={p.name} data-price={p.price}>{p.name} · ₹{p.price.toLocaleString('en-IN')}</option>)}
+            </select>
+          </div>
+          <div>
+            <label for="add-source" class="label">Paid by</label>
+            <select id="add-source" name="source" class="field">
+              <option value="upi">UPI</option>
+              <option value="cash">Cash</option>
+            </select>
+          </div>
+          <div>
+            <label for="add-start" class="label">Start date</label>
+            <input id="add-start" name="starts_on" type="date" required class="field" />
+          </div>
+          <div class="flex gap-3 sm:col-span-2 lg:col-span-3">
+            <button type="submit" class="btn-primary">Save payment</button>
+            <button type="button" id="cancel-add" class="btn-ghost">Cancel</button>
+            <p id="add-error" class="self-center text-sm text-madder" hidden></p>
+          </div>
+        </form>
+
+        <div id="import-panel" class="mt-8 rounded-lg border border-ink/15 bg-sand/30 p-6" hidden>
+          <h2 class="text-h3">Import members from a spreadsheet</h2>
+          <p class="mt-2 text-sm text-ink-soft">
+            Save your sheet as CSV with these column headings in the first row:
+            <code class="rounded bg-white px-1">name, phone, email, plan, start_date, paid_by</code>.
+            Email and paid_by are optional (paid_by is cash or upi, default cash). Plan must be one of{' '}
+            {site.pricing.plans.map((p) => p.name).join(', ')}. Dates as 2026-01-31 or 31/01/2026.
+            Members already in the system (same phone) are updated, not duplicated. Running the same file twice is safe.
+          </p>
+          <div class="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div>
+              <label for="import-file" class="label">CSV file</label>
+              <input id="import-file" type="file" accept=".csv,text/csv" class="field bg-white" />
+            </div>
+            <button type="button" id="import-check" class="btn-ghost">Check file</button>
+          </div>
+          <div id="import-preview" class="mt-4 text-sm" hidden></div>
+          <div class="mt-4 flex gap-3">
+            <button type="button" id="import-run" class="btn-primary" disabled>Import</button>
+            <button type="button" id="cancel-import" class="btn-ghost">Close</button>
+          </div>
+          <p id="import-result" class="mt-3 text-sm" hidden></p>
+        </div>
+
+        <div class="mt-10 space-y-12">
+          <div>
+            <h2 class="text-h3">Enquiries</h2>
+            <p class="mt-1 text-sm text-ink-soft">Messages from the website contact form. Tap WhatsApp to reply, then Done to clear.</p>
+            <div id="list-enquiries" class="mt-4"></div>
+          </div>
+          <div>
+            <h2 class="text-h3">Due for a reminder</h2>
+            <p class="mt-1 text-sm text-ink-soft">Ends within 3 days, or ended in the last 30 days without renewing. Tap WhatsApp to send a ready-made message.</p>
+            <div id="list-due" class="mt-4"></div>
+          </div>
+          <div>
+            <h2 class="text-h3">Active</h2>
+            <div id="list-active" class="mt-4"></div>
+          </div>
+          <div>
+            <h2 class="text-h3">Lapsed</h2>
+            <p class="mt-1 text-sm text-ink-soft">Ended more than 30 days ago.</p>
+            <div id="list-lapsed" class="mt-4"></div>
+          </div>
+          <div>
+            <h2 class="text-h3">Payments that need attention</h2>
+            <p class="mt-1 text-sm text-ink-soft">Razorpay payments the system could not match to a plan or member. Add them by hand, then they can be ignored.</p>
+            <div id="list-events" class="mt-4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { supabase, inr, formatDate, daysUntil } from '../lib/supabase';
+  import { site } from '../data/site';
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const login = $('login'), app = $('app');
+
+  type Member = { id: number; name: string; phone: string; email: string | null };
+  type Membership = {
+    id: number; plan: string; amount_paise: number; starts_on: string; ends_on: string; source: string;
+    member: Member; reminders: { sent_at: string }[];
+  };
+
+  const escape = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+  if (supabase) {
+    // ---- Auth -----------------------------------------------------------------
+    const isStaff = (session: any) => session?.user?.app_metadata?.role === 'staff';
+
+    async function refreshAuth() {
+      const { data: { session } } = await supabase!.auth.getSession();
+      if (session && isStaff(session)) {
+        login.hidden = true; app.hidden = false;
+        await load();
+      } else {
+        if (session) {
+          await supabase!.auth.signOut();
+          showLoginError('This account does not have admin access.');
+        }
+        login.hidden = false; app.hidden = true;
+      }
+    }
+
+    function showLoginError(msg: string) { const el = $('login-error'); el.textContent = msg; el.hidden = false; }
+
+    $('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('login-error').hidden = true;
+      const email = ($('login-email') as HTMLInputElement).value.trim();
+      const password = ($('login-password') as HTMLInputElement).value;
+      const { error } = await supabase!.auth.signInWithPassword({ email, password });
+      if (error) return showLoginError(error.message);
+      await refreshAuth();
+    });
+
+    $('logout').addEventListener('click', async () => { await supabase!.auth.signOut(); await refreshAuth(); });
+
+    // ---- Data -------------------------------------------------------------------
+    async function load() {
+      const { data, error } = await supabase!
+        .from('memberships')
+        .select('id, plan, amount_paise, starts_on, ends_on, source, member:members(id, name, phone, email), reminders(sent_at)')
+        .order('ends_on', { ascending: false });
+      if (error) { $('summary').textContent = 'Could not load: ' + error.message; return; }
+
+      // Latest membership per member decides their status.
+      const latest = new Map<number, Membership>();
+      for (const m of (data as unknown as Membership[])) {
+        if (!latest.has(m.member.id)) latest.set(m.member.id, m);
+      }
+      const rows = [...latest.values()];
+      const due: Membership[] = [], active: Membership[] = [], lapsed: Membership[] = [];
+      for (const m of rows) {
+        const d = daysUntil(m.ends_on);
+        if (d > 3) active.push(m);
+        else if (d >= -30) due.push(m);
+        else lapsed.push(m);
+      }
+      due.sort((a, b) => a.ends_on.localeCompare(b.ends_on));
+      active.sort((a, b) => a.ends_on.localeCompare(b.ends_on));
+      lapsed.sort((a, b) => b.ends_on.localeCompare(a.ends_on));
+
+      const openEnquiries = await loadEnquiries();
+      $('summary').textContent = `${active.length} active, ${due.length} due for a reminder, ${lapsed.length} lapsed, ${openEnquiries} new enquir${openEnquiries === 1 ? 'y' : 'ies'}.`;
+      render('list-due', due, true);
+      render('list-active', active, false);
+      render('list-lapsed', lapsed, false);
+      await loadEvents();
+    }
+
+    function render(id: string, rows: Membership[], withReminder: boolean) {
+      const el = $(id);
+      if (!rows.length) { el.innerHTML = '<p class="text-sm text-ink-soft">Nobody here.</p>'; return; }
+      el.innerHTML = `<ul class="divide-y divide-ink/10 rounded-lg border border-ink/15 bg-white/40">${rows.map((m) => rowHtml(m, withReminder)).join('')}</ul>`;
+      el.querySelectorAll<HTMLButtonElement>('[data-remind]').forEach((b) => b.addEventListener('click', () => remind(rows.find((r) => r.id === Number(b.dataset.remind))!)));
+      el.querySelectorAll<HTMLButtonElement>('[data-edit]').forEach((b) => b.addEventListener('click', () => editMember(rows.find((r) => r.id === Number(b.dataset.edit))!.member)));
+    }
+
+    function rowHtml(m: Membership, withReminder: boolean) {
+      const d = daysUntil(m.ends_on);
+      const when = d > 0 ? `ends in ${d} day${d === 1 ? '' : 's'}` : d === 0 ? 'ends today' : `ended ${-d} day${d === -1 ? '' : 's'} ago`;
+      const last = m.reminders?.length ? new Date(Math.max(...m.reminders.map((r) => Date.parse(r.sent_at)))) : null;
+      const reminded = last ? ` · reminded ${last.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : '';
+      return `
+        <li class="grid gap-3 p-4 text-sm sm:grid-cols-[1.4fr_1fr_1.2fr_auto] sm:items-center">
+          <div>
+            <span class="font-medium">${escape(m.member.name || 'No name yet')}</span>
+            <span class="block text-ink-soft">${escape(m.member.phone)}${m.member.email ? '<br>' + escape(m.member.email) : ''}</span>
+          </div>
+          <div>${escape(m.plan)} · ${inr(m.amount_paise)}<span class="block text-ink-soft">${escape(m.source)}</span></div>
+          <div>${formatDate(m.ends_on)}<span class="block text-ink-soft">${when}${reminded}</span></div>
+          <div class="flex gap-2 sm:justify-end">
+            ${withReminder ? `<button data-remind="${m.id}" class="btn-primary !px-4 !py-2 text-xs">WhatsApp</button>` : ''}
+            <button data-edit="${m.id}" class="btn-ghost !px-4 !py-2 text-xs">Edit</button>
+          </div>
+        </li>`;
+    }
+
+    async function remind(m: Membership) {
+      const d = daysUntil(m.ends_on);
+      const text = d >= 0
+        ? `Namaste ${m.member.name || ''}, this is ${site.name}. Your ${m.plan} membership ends on ${formatDate(m.ends_on)}. Renew any time at ${site.url}/#pricing or at the studio. See you in class!`
+        : `Namaste ${m.member.name || ''}, this is ${site.name}. Your ${m.plan} membership ended on ${formatDate(m.ends_on)}. We would love to see you back. Renew at ${site.url}/#pricing or at the studio.`;
+      window.open(`https://wa.me/${m.member.phone}?text=${encodeURIComponent(text.replace(/\s+,/g, ','))}`, '_blank', 'noopener');
+      await supabase!.from('reminders').insert({ membership_id: m.id });
+      await load();
+    }
+
+    async function editMember(member: Member) {
+      const name = window.prompt('Name', member.name ?? '');
+      if (name === null) return;
+      const email = window.prompt('Email (used for their My membership login). Leave blank for none.', member.email ?? '');
+      if (email === null) return;
+      const { error } = await supabase!.from('members').update({ name: name.trim(), email: email.trim() || null }).eq('id', member.id);
+      if (error) window.alert('Could not save: ' + error.message);
+      await load();
+    }
+
+    async function loadEnquiries(): Promise<number> {
+      const { data, error } = await supabase!
+        .from('enquiries')
+        .select('id, name, phone, email, studio, interest, message, created_at')
+        .eq('status', 'new')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      const el = $('list-enquiries');
+      if (error) { el.innerHTML = `<p class="text-sm text-madder">Could not load enquiries: ${escape(error.message)}</p>`; return 0; }
+      if (!data?.length) { el.innerHTML = '<p class="text-sm text-ink-soft">No new enquiries.</p>'; return 0; }
+      el.innerHTML = `<ul class="divide-y divide-ink/10 rounded-lg border border-ink/15 bg-white/40">${data.map((q: any) => `
+        <li class="grid gap-3 p-4 text-sm sm:grid-cols-[1.2fr_1.6fr_auto] sm:items-start">
+          <div>
+            <span class="font-medium">${escape(q.name)}</span>
+            <span class="block text-ink-soft">${escape(q.phone)}${q.email ? '<br>' + escape(q.email) : ''}</span>
+            <span class="block text-xs text-ink-soft">${new Date(q.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</span>
+          </div>
+          <div>
+            <span class="block">${escape(q.interest || 'Enquiry')}${q.studio ? ' · ' + escape(q.studio) : ''}</span>
+            <span class="block text-ink-soft whitespace-pre-line">${escape(q.message || '')}</span>
+          </div>
+          <div class="flex gap-2 sm:justify-end">
+            <button data-reply="${q.id}" class="btn-primary !px-4 !py-2 text-xs">WhatsApp</button>
+            <button data-done="${q.id}" class="btn-ghost !px-4 !py-2 text-xs">Done</button>
+          </div>
+        </li>`).join('')}</ul>`;
+      el.querySelectorAll<HTMLButtonElement>('[data-reply]').forEach((b) => b.addEventListener('click', () => {
+        const q: any = data.find((x: any) => x.id === Number(b.dataset.reply));
+        const first = String(q.name).split(' ')[0];
+        const text = `Namaste ${first}, this is ${site.name}. Thank you for your message about ${q.interest ? q.interest.toLowerCase() : 'our classes'}${q.studio ? ' at our ' + q.studio : ''}. When would you like to come for your first class?`;
+        window.open(`https://wa.me/${q.phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+      }));
+      el.querySelectorAll<HTMLButtonElement>('[data-done]').forEach((b) => b.addEventListener('click', async () => {
+        b.disabled = true;
+        const { error } = await supabase!.from('enquiries').update({ status: 'done' }).eq('id', Number(b.dataset.done));
+        if (error) { window.alert('Could not update: ' + error.message); b.disabled = false; return; }
+        await load();
+      }));
+      return data.length;
+    }
+
+    async function loadEvents() {
+      const { data } = await supabase!
+        .from('webhook_events')
+        .select('id, received_at, error, payload')
+        .eq('processed', false)
+        .not('error', 'is', null)
+        .order('received_at', { ascending: false })
+        .limit(20);
+      const el = $('list-events');
+      if (!data?.length) { el.innerHTML = '<p class="text-sm text-ink-soft">Nothing to sort out.</p>'; return; }
+      el.innerHTML = `<ul class="divide-y divide-ink/10 rounded-lg border border-ink/15 text-sm">${data.map((e: any) => {
+        const p = e.payload?.payload?.payment?.entity ?? {};
+        return `<li class="px-4 py-3">
+          <span class="font-medium">${inr(Number(p.amount) || 0)}</span> from ${escape(String(p.contact ?? '?'))}${p.email ? ' · ' + escape(String(p.email)) : ''}
+          <span class="block text-ink-soft">${new Date(e.received_at).toLocaleString('en-IN')} · ${escape(e.error ?? '')}</span>
+          <span class="block text-xs text-ink-soft">Razorpay ID ${escape(String(p.id ?? ''))}</span>
+        </li>`;
+      }).join('')}</ul>`;
+    }
+
+    // ---- Add payment --------------------------------------------------------------
+    const addForm = $('add-form') as HTMLFormElement;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    ($('add-start') as HTMLInputElement).value = today;
+    $('show-add').addEventListener('click', () => { addForm.hidden = false; $('add-name').focus(); });
+    $('cancel-add').addEventListener('click', () => { addForm.hidden = true; addForm.reset(); ($('add-start') as HTMLInputElement).value = today; });
+
+    addForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = $('add-error'); err.hidden = true;
+      const f = new FormData(addForm);
+      const planSelect = $('add-plan') as HTMLSelectElement;
+      const price = Number(planSelect.selectedOptions[0].dataset.price);
+      const phone = String(f.get('phone')).replace(/\D/g, '');
+      const normPhone = phone.length === 10 ? '91' + phone : phone;
+      const email = String(f.get('email') || '').trim().toLowerCase() || null;
+
+      // Find or create the member by phone.
+      let { data: member } = await supabase!.from('members').select('id').eq('phone', normPhone).maybeSingle();
+      if (!member) {
+        const { data, error } = await supabase!.from('members').insert({ name: String(f.get('name')), phone: normPhone, email }).select('id').single();
+        if (error) { err.textContent = error.message; err.hidden = false; return; }
+        member = data;
+      } else {
+        await supabase!.from('members').update({ name: String(f.get('name')), ...(email ? { email } : {}) }).eq('id', member.id);
+      }
+      const { error } = await supabase!.from('memberships').insert({
+        member_id: member!.id,
+        plan: String(f.get('plan')),
+        amount_paise: price * 100,
+        starts_on: String(f.get('starts_on')),
+        source: String(f.get('source')),
+      });
+      if (error) { err.textContent = error.message; err.hidden = false; return; }
+      addForm.hidden = true; addForm.reset(); ($('add-start') as HTMLInputElement).value = today;
+      await load();
+    });
+
+    // ---- Import members -------------------------------------------------------------
+    type Row = { line: number; name: string; phone: string; email: string | null; plan: string; starts_on: string; source: 'cash' | 'upi' };
+    const importPanel = $('import-panel'), importRun = $('import-run') as HTMLButtonElement, importPreview = $('import-preview'), importResult = $('import-result');
+    let importRows: Row[] = [];
+    $('show-import').addEventListener('click', () => { importPanel.hidden = false; importPanel.scrollIntoView({ behavior: 'smooth' }); });
+    $('cancel-import').addEventListener('click', () => { importPanel.hidden = true; importRows = []; importRun.disabled = true; importPreview.hidden = true; importResult.hidden = true; });
+
+    // Minimal CSV parser: handles quoted fields, commas inside quotes, CRLF.
+    function parseCsv(text: string): string[][] {
+      const rows: string[][] = []; let row: string[] = [], field = '', inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQ) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; } else field += c; }
+        else if (c === '"') inQ = true;
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(field); rows.push(row); row = []; field = ''; }
+        else field += c;
+      }
+      if (field.length || row.length) { row.push(field); rows.push(row); }
+      return rows.filter((r) => r.some((v) => v.trim() !== ''));
+    }
+
+    function parseDate(v: string): string | null {
+      v = v.trim();
+      let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+      m = v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+      if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+      return null;
+    }
+
+    const planNames = site.pricing.plans.map((p) => p.name);
+    const planPrice = (name: string) => site.pricing.plans.find((p) => p.name === name)!.price;
+
+    $('import-check').addEventListener('click', async () => {
+      importResult.hidden = true; importRows = []; importRun.disabled = true;
+      const file = ($('import-file') as HTMLInputElement).files?.[0];
+      if (!file) { importPreview.hidden = false; importPreview.textContent = 'Choose a CSV file first.'; return; }
+      const table = parseCsv(await file.text());
+      const header = (table.shift() ?? []).map((h) => h.trim().toLowerCase().replace(/\s+/g, '_'));
+      const col = (name: string) => header.indexOf(name);
+      const missing = ['name', 'phone', 'plan', 'start_date'].filter((c) => col(c) < 0);
+      if (missing.length) { importPreview.hidden = false; importPreview.textContent = 'Missing column(s): ' + missing.join(', ') + '. Found: ' + header.join(', '); return; }
+      const errors: string[] = [];
+      table.forEach((r, idx) => {
+        const line = idx + 2;
+        const get = (c: string) => (col(c) >= 0 ? (r[col(c)] ?? '').trim() : '');
+        const name = get('name'); const phoneRaw = get('phone').replace(/\D/g, ''); const phone = phoneRaw.length === 10 ? '91' + phoneRaw : phoneRaw;
+        const email = get('email').toLowerCase() || null; const plan = planNames.find((p) => p.toLowerCase() === get('plan').toLowerCase());
+        const starts_on = parseDate(get('start_date')); const sourceRaw = (get('paid_by') || 'cash').toLowerCase();
+        const problems: string[] = [];
+        if (name.length < 2) problems.push('name');
+        if (!/^[0-9]{12,15}$/.test(phone)) problems.push('phone');
+        if (!plan) problems.push('plan');
+        if (!starts_on) problems.push('start_date');
+        if (!['cash', 'upi'].includes(sourceRaw)) problems.push('paid_by');
+        if (problems.length) errors.push(`Line ${line}: bad ${problems.join(', ')}`);
+        else importRows.push({ line, name, phone, email, plan: plan!, starts_on: starts_on!, source: sourceRaw as 'cash' | 'upi' });
+      });
+      importPreview.hidden = false;
+      importPreview.innerHTML = `<p>${importRows.length} row${importRows.length === 1 ? '' : 's'} ready${errors.length ? `, ${errors.length} skipped:` : '.'}</p>` +
+        (errors.length ? `<ul class="mt-1 list-disc pl-5 text-madder">${errors.slice(0, 20).map(escape).map((e) => `<li>${e}</li>`).join('')}${errors.length > 20 ? '<li>…</li>' : ''}</ul>` : '');
+      importRun.disabled = importRows.length === 0;
+    });
+
+    importRun.addEventListener('click', async () => {
+      importRun.disabled = true; importResult.hidden = false; importResult.className = 'mt-3 text-sm text-ink-soft'; importResult.textContent = 'Importing…';
+      try {
+        // 1. Which phones already exist?
+        const phones = [...new Set(importRows.map((r) => r.phone))];
+        const { data: existing, error: e1 } = await supabase!.from('members').select('id, phone, name, email').in('phone', phones);
+        if (e1) throw e1;
+        const byPhone = new Map((existing ?? []).map((m: any) => [m.phone, m]));
+        // 2. Create the new members in one insert (first row per phone wins for name/email).
+        const fresh = new Map<string, Row>();
+        for (const r of importRows) if (!byPhone.has(r.phone) && !fresh.has(r.phone)) fresh.set(r.phone, r);
+        if (fresh.size) {
+          const { data: created, error: e2 } = await supabase!.from('members')
+            .insert([...fresh.values()].map((r) => ({ name: r.name, phone: r.phone, email: r.email }))).select('id, phone, name, email');
+          if (e2) throw e2;
+          for (const m of created ?? []) byPhone.set((m as any).phone, m);
+        }
+        // 3. Fill in missing names/emails on existing members.
+        let updated = 0;
+        for (const r of importRows) {
+          const m: any = byPhone.get(r.phone);
+          const patch: Record<string, string> = {};
+          if (m && !m.name && r.name) patch.name = r.name;
+          if (m && !m.email && r.email) patch.email = r.email;
+          if (Object.keys(patch).length) { const { error } = await supabase!.from('members').update(patch).eq('id', m.id); if (!error) { Object.assign(m, patch); updated++; } }
+        }
+        // 4. Skip memberships that already exist for that member, plan and start date.
+        const ids = [...new Set([...byPhone.values()].map((m: any) => m.id))];
+        const { data: have, error: e3 } = await supabase!.from('memberships').select('member_id, plan, starts_on').in('member_id', ids);
+        if (e3) throw e3;
+        const seen = new Set((have ?? []).map((h: any) => `${h.member_id}|${h.plan}|${h.starts_on}`));
+        const inserts = [];
+        for (const r of importRows) {
+          const m: any = byPhone.get(r.phone); const key = `${m.id}|${r.plan}|${r.starts_on}`;
+          if (seen.has(key)) continue; seen.add(key);
+          inserts.push({ member_id: m.id, plan: r.plan, amount_paise: planPrice(r.plan) * 100, starts_on: r.starts_on, source: r.source });
+        }
+        if (inserts.length) { const { error: e4 } = await supabase!.from('memberships').insert(inserts); if (e4) throw e4; }
+        importResult.textContent = `Done. ${fresh.size} new member${fresh.size === 1 ? '' : 's'}, ${updated} updated, ${inserts.length} membership${inserts.length === 1 ? '' : 's'} added, ${importRows.length - inserts.length} already present.`;
+        importRows = []; ($('import-file') as HTMLInputElement).value = ''; importPreview.hidden = true;
+        await load();
+      } catch (e: any) {
+        importResult.className = 'mt-3 text-sm text-madder'; importResult.textContent = 'Import stopped: ' + (e?.message ?? String(e)) + '. Members may have been saved without their memberships. Fix the file and run it again; anything already imported is skipped.';
+        importRun.disabled = false;
+      }
+    });
+
+    supabase.auth.onAuthStateChange((_e, session) => { if (!session) { login.hidden = false; app.hidden = true; } });
+    refreshAuth();
+  }
+</script>

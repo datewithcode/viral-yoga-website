@@ -1,0 +1,20 @@
+---
+import { site } from '../data/site';
+---
+{site.testimonials.length > 0 && (
+<section id="students" class="section">
+  <div class="container-site">
+    <h2 class="text-h2">From our students</h2>
+    <ul class="mt-10 grid gap-8 md:grid-cols-3">
+      {site.testimonials.map((t) => (
+        <li class="border-l-2 border-madder pl-5">
+          <blockquote class="font-display text-xl leading-snug" style="font-variation-settings: 'opsz' 18, 'SOFT' 50;">
+            “{t.quote}”
+          </blockquote>
+          <p class="mt-4 text-sm text-ink-soft"><span class="font-medium text-ink">{t.name}</span>, {t.detail}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+)}

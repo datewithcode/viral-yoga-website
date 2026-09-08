@@ -1,0 +1,33 @@
+---
+import { site } from '../data/site';
+---
+<section class="relative isolate min-h-[88svh] overflow-hidden bg-ink text-chalk">
+  <img
+    src={site.heroImage}
+    alt={site.heroImageAlt}
+    class="absolute inset-0 -z-20 h-full w-full object-cover"
+    fetchpriority="high"
+  />
+  <div class="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/55 to-ink/10" aria-hidden="true"></div>
+
+  <div class="container-site flex min-h-[88svh] flex-col justify-end pb-14 pt-32 sm:pb-20">
+    {site.taglineGujarati && (
+      <p class="mb-4 font-display text-2xl text-sand sm:text-3xl" lang="gu">{site.taglineGujarati}</p>
+    )}
+    <h1 class="max-w-4xl text-display">{site.tagline}</h1>
+    <p class="mt-6 max-w-xl text-lg text-chalk/85">{site.copy.heroIntro}</p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="#contact" class="btn-primary">{site.copy.heroPrimaryButton}</a>
+      <a href="#schedule" class="btn-light">See the timetable</a>
+    </div>
+  </div>
+
+  <div class="border-t border-chalk/15 bg-ink/70 backdrop-blur-sm">
+    <div class="container-site grid gap-x-8 gap-y-2 py-4 text-sm text-chalk/80 sm:grid-cols-3">
+      {site.locations.map((l) => (
+        <span><span class="text-chalk">{l.name}</span>, {l.addressLines[1]}</span>
+      ))}
+      <a href={`tel:${site.phone.replace(/\s/g, '')}`} class="text-chalk sm:text-right">{site.phone}</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../data/site';
+---
+<Base title="Message sent" description="Thanks for getting in touch.">
+  <section class="section">
+    <div class="container-site max-w-2xl">
+      <h1 class="text-h2">Message sent</h1>
+      <p class="mt-4 text-ink-soft">
+        Thank you. We will reply during studio hours, usually within an hour. If it is urgent, call{' '}
+        <a href={`tel:${site.phone.replace(/\s/g, '')}`} class="underline underline-offset-4">{site.phone}</a>.
+      </p>
+      <a href="/" class="btn-ghost mt-8">Back to the site</a>
+    </div>
+  </section>
+</Base>
