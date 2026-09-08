@@ -55,6 +55,7 @@ All names, phone numbers, addresses, timetable entries, testimonials and photos 
 3. Types their email. We email them a sign-in link. No signup form, no password. Their account is created automatically the first time.
 4. Enters name and mobile, confirms the plan, pays with UPI, card or net banking through Razorpay.
 5. Sees a card with plan, start date, end date and days remaining. Can come back any time.
+5b. When the plan runs out, the same card turns red and says "Expired membership" with "Ended 5 days ago", and tells them how to renew. Older memberships stay below as "Earlier membership", so they keep their full history. Nobody has to mark anyone expired: it is worked out from the end date.
 6. Students who prefer no fee can still pay by UPI directly from the pricing section and send a screenshot on WhatsApp. The instructor adds those by hand.
 
 ### For the instructor
