@@ -256,7 +256,7 @@ import { isConfigured } from '../lib/supabase';
     async function editMember(member: Member) {
       const name = window.prompt('Name', member.name ?? '');
       if (name === null) return;
-      const email = window.prompt('Email (used for their My membership login). Leave blank for none.', member.email ?? '');
+      const email = window.prompt('Email (used for their membership login). Leave blank for none.', member.email ?? '');
       if (email === null) return;
       const { error } = await supabase!.from('members').update({ name: name.trim(), email: email.trim() || null }).eq('id', member.id);
       if (error) window.alert('Could not save: ' + error.message);
