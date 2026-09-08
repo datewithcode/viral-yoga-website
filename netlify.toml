@@ -8,6 +8,10 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Supabase project (Viral-Yoga, Mumbai). Both values are public by design:
+  # the publishable key only works within the database's row-level security.
+  PUBLIC_SUPABASE_URL = "https://sodtpweedjcvnvuomyzc.supabase.co"
+  PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_MSDuW3g4WWG_T3GuHCor5g_Hg3MHSMM"
 
 [[headers]]
   for = "/*"
