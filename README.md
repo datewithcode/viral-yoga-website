@@ -3,7 +3,7 @@
 A fast, static website for a yoga studio with two locations (Anjar and Adipur, Kutch).
 Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com). No database, no server, nothing to maintain.
 
-Sections: hero, classes, weekly timetable (per studio), about, photo gallery, two studio locations with Google Maps, student testimonials, contact form, WhatsApp button.
+Sections: hero, classes, weekly timetable (per studio), about, your teacher and their achievements, photo gallery, two studio locations with Google Maps, student testimonials, contact form, WhatsApp button.
 
 ## 1. Run it locally
 
@@ -29,6 +29,7 @@ Edit it to change:
 - the weekly schedule (one row per class per day)
 - every sentence on the page that describes your studio (the `copy` block)
 - testimonials. **The ones in the file are invented.** Replace them with real feedback or set the list to `[]` to hide the section.
+- the teacher and their achievements (the `instructor` block). **Name, photo and every achievement in the file are invented.** Put in the real name, role and a short bio, then list the achievements newest first. Each one takes a `year` (leave it `''` if there is no date), a `title`, and an optional `detail` line. Set `achievements: []` to hide the whole section.
 
 Also set `upiId` in the `pricing` block, or the UPI pay buttons will point at a dummy ID. And set `url` to your live address: the WhatsApp reminder message sent from the admin page links to it.
 
@@ -46,6 +47,7 @@ The site crops each photo to the shape below automatically, so send the closest 
 | --- | --- | --- | --- | --- | --- |
 | Hero (top of home page) | 1 | Wide, 16:10 | 1920 x 1200 px | `/images/hero.jpg` | Headline sits bottom-left over a dark fade. Keep the important part of the photo in the upper-right two-thirds. Landscape only. |
 | About | 1 | Portrait, 4:5 | 1200 x 1500 px | `/images/about.jpg` | Teacher with students, or the hall. |
+| Teacher | 1 | Square, 1:1 | 800 x 800 px | `/images/instructor.jpg` | Head and shoulders of the teacher. Used beside the achievements list. |
 | Gallery | 6 | Landscape, 4:3 | 1200 x 900 px | `/images/gallery-1.jpg` to `gallery-6.jpg` | Mix of both studios. The first one shows larger on phones. |
 | Social preview (link card on WhatsApp, Facebook) | optional | 1.91:1 | 1200 x 630 px | `/images/og.jpg` | The hero is reused if not supplied. |
 | Logo | optional | Square | 512 x 512 px, PNG with transparent background or SVG | `/images/logo.png` | Replaces the lotus mark in the header and the favicon. |
