@@ -11,7 +11,10 @@ import { site } from '../data/site';
           <blockquote class="font-display text-xl leading-snug" style="font-variation-settings: 'opsz' 18, 'SOFT' 50;">
             “{t.quote}”
           </blockquote>
-          <p class="mt-4 text-sm text-ink-soft"><span class="font-medium text-ink">{t.name}</span>, {t.detail}</p>
+          <p class="mt-4 text-sm text-ink-soft">
+            <span class="font-medium text-ink">{t.name}</span>{t.age && <span>, {t.age}</span>}
+            <span class="mt-0.5 block">{[t.since, t.detail].filter(Boolean).join(' \u00b7 ')}</span>
+          </p>
         </li>
       ))}
     </ul>

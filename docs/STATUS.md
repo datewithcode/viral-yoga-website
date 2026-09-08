@@ -17,6 +17,10 @@ Everything is built and tested. The public website is live with placeholder cont
 |---|---|---|---|
 | Public website: home, classes, timetable per studio, prices, gallery, both maps, contact form, WhatsApp button | Yes | Yes | Yes, placeholder content |
 | Teacher section: photo, short bio, and a dated list of achievements | Yes | Yes | Yes, placeholder content |
+| "Why people come": what students actually want, in their words | Yes | Yes | Yes, wording to confirm |
+| Common questions, with answers Google can show in search results | Yes | Yes | Yes, answers to confirm |
+| Google rating shown on the page | Yes | Yes | Hidden until you send the real numbers |
+| Privacy, terms and refund pages, which Razorpay requires | Yes | Yes | Yes, terms and refunds to confirm |
 | Pay by UPI directly (QR code and pay link per plan, send screenshot on WhatsApp) | Yes | Links checked, not yet opened in a real UPI app | No |
 | Membership page: sign in by email link, see days remaining | Yes | Yes | Yes, with limits (see section 9) |
 | Membership page: register and buy a plan online | Yes | Yes, with a stand-in for Razorpay | Hidden until domain + Razorpay exist (step 3) |
@@ -116,7 +120,10 @@ The teacher section is a different case: it is **built and showing right now**, 
 - [ ] Both studio addresses and Google Maps links
 - [ ] The real weekly timetable for each studio
 - [ ] Photos: one wide hero shot, one about photo, up to six gallery images
-- [ ] Real testimonials, or tell me to hide that section
+- [ ] Real testimonials, or tell me to hide that section. Send the person's age and how long they have come, which is what makes them convincing
+- [ ] Your Google Business listing link, and the rating and review count showing on it. Nothing is displayed until you send these, because a rating must never be invented
+- [ ] Read the ten answers in the questions section and correct anything that is not your policy
+- [ ] Read `/terms/` and `/refunds/` and confirm them, especially the refund window and how long refunds take. Razorpay's reviewers read these pages
 - [ ] Teacher's name, role, two-line bio, and the list of achievements with the year of each. Send as many as you like, I put them newest first
 - [ ] One square photo of the teacher, 800 x 800 px or larger
 - [ ] Your UPI ID (the one that receives money)
@@ -136,6 +143,8 @@ Four things cannot be settled until those accounts exist. They are written down 
 - [ ] **Deliver a real webhook and watch what happens when it fails.** The site now asks Razorpay to try again after an unexpected error. If there is a bug, every retry hits the same bug, and Razorpay may switch the webhook off after a day. Confirm the retry behaviour on a real delivery, and check the Razorpay dashboard for a disabled webhook after testing.
 - [ ] **Test the 6-digit sign-in code with a real email.** It is written but has never run, because it needs the domain and Resend. Send yourself a code, sign in on a laptop with the email opened on a phone, and confirm it works. Only then set `signInEmailHasCode: true`.
 - [ ] **Decide about Razorpay payment links.** Only payments started from the website are recorded automatically now. A payment made through a Razorpay link sent on WhatsApp lands in the admin attention list to be added by hand. This was deliberate, for safety. If the studio wants to use payment links often, say so and it can be revisited.
+
+- [ ] **Confirm the policy pages before submitting Razorpay KYC.** Razorpay's compliance team checks that the website carries terms and conditions, a privacy policy, a refund and cancellation policy with clear timelines, and contact details with a physical address. All four exist. The privacy page is accurate as written; the terms and refund pages state studio policy and need the owner's word before they are submitted.
 
 Also worth doing at the same time: ask the reviewer who wrote `docs/security-review-2026-09-08.md` for a second pass, which is what they recommended before live keys.
 

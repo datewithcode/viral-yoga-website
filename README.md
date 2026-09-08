@@ -3,7 +3,7 @@
 A fast, static website for a yoga studio with two locations (Anjar and Adipur, Kutch).
 Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com). No database, no server, nothing to maintain.
 
-Sections: hero, classes, weekly timetable (per studio), about, your teacher and their achievements, photo gallery, two studio locations with Google Maps, student testimonials, contact form, WhatsApp button.
+Sections: hero, why people come, classes, weekly timetable (per studio), about, your teacher and their achievements, photo gallery, two studio locations with Google Maps, student testimonials, common questions, contact form, WhatsApp button. Plus privacy, terms and refund pages, which Razorpay requires before it will approve an account.
 
 ## 1. Run it locally
 
@@ -28,6 +28,9 @@ Edit it to change:
 - the list of classes
 - the weekly schedule (one row per class per day)
 - every sentence on the page that describes your studio (the `copy` block)
+- the reasons people come (the `benefits` block). Written as what a student wants, not as class names.
+- the common questions (the `faqs` block). **Confirm every answer.** They describe studio policy, and what is in the file is a sensible guess, not your rules.
+- your Google rating (the `google` block). Leave `rating` empty and the line stays hidden. **Never type a rating you have not earned:** copy the real numbers from your Google Business profile.
 - testimonials. **The ones in the file are invented.** Replace them with real feedback or set the list to `[]` to hide the section.
 - the teacher and their achievements (the `instructor` block). **Name, photo and every achievement in the file are invented.** Put in the real name, role and a short bio, then list the achievements newest first. Each one takes a `year` (leave it `''` if there is no date), a `title`, and an optional `detail` line. Set `achievements: []` to hide the whole section.
 
@@ -76,6 +79,12 @@ Plans and prices are in the `pricing` block of `src/data/site.ts`. Two ways to g
 ### Colours and fonts
 
 Colours and typefaces are defined at the top of `src/styles/global.css` in the `@theme` block. Change the hex values there and every section updates. Fonts are loaded from Google Fonts in `src/layouts/Base.astro`.
+
+### Privacy, terms and refunds
+
+Three pages live at `/privacy/`, `/terms/` and `/refunds/`, linked from the footer. Razorpay's compliance team reads them during account approval and will pause your application if they are missing or do not match the business, so they are not optional once you take online payments.
+
+The privacy page describes what the site genuinely does with personal information, so it is accurate as written. **The terms and refund pages describe studio policy and must be read and confirmed by the owner**, in particular the refund window and how long refunds take. Both come from the `legal` block in `src/data/site.ts`. None of this is legal advice; have someone check it if the studio is a registered company.
 
 ## 3. Go live
 
