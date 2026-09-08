@@ -169,6 +169,7 @@ What it gives you:
 - **Attention list.** A payment the system could not match is kept in "Payments that need attention" on the admin page. Only payments that started from "Buy online" on the site are recorded automatically; a payment made through a Razorpay Payment Link or Button outside the site always lands here, and you add it by hand.
 - **Who gets linked to which member.** A signed-in student is matched to the member record with the same email (set by import or in admin). A phone number typed at checkout never selects a member, and a number that already belongs to someone else is refused. So give walk-in members' emails to the admin page and they link themselves on first sign-in.
 - **Limits.** Contact form: 3 messages per phone and 5 per connection every 10 minutes. Orders: an unpaid order is reused for 30 minutes, at most 5 new orders per member per hour.
+- **What an expired member sees.** The newest card says "Expired membership" in red with "Ended N days ago" and how to renew; older ones say "Earlier membership". `tests/browser-membership.mjs` checks this in a real browser (by hand, not in CI).
 - **Local testing** (optional, needs Docker): `supabase start`, then `bash tests/run.sh`. It resets the local database, seeds test accounts, starts a mock Razorpay/Resend server and runs `tests/functions.sh` (payments, webhook retries, member linking, rate limits, row level security). The same run happens in CI on every pull request. `supabase status` prints the local URL and keys.
 
 ## Working with the code (branches)
