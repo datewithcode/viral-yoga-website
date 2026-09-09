@@ -1,9 +1,9 @@
 // Receives the website contact form, stores the enquiry for the admin page,
 // and emails a copy to the studio. Public endpoint (auth: 'none'): the form is
 // filled by visitors with no account. Protection: honeypot, validation, and
-// rate limits enforced inside the database function submit_enquiry (per phone,
-// per IP address, and a global circuit breaker), so parallel requests cannot
-// slip past the check.
+// rate limits enforced inside the database function submit_enquiry. The per-phone
+// and per-address limits are locked, so a burst from one phone or one address
+// cannot slip past them. The overall limit is a loose circuit breaker only.
 //
 // Secrets (optional, email is skipped without them):
 //   RESEND_API_KEY, ENQUIRY_EMAIL_TO, ENQUIRY_EMAIL_FROM

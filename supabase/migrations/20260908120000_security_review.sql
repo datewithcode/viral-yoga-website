@@ -2,8 +2,11 @@
 --
 -- F02: webhook deliveries that failed for a transient reason are retried by
 --      Razorpay with the same event id; count the attempts.
--- F03: enquiry rate limits are enforced inside one database function that
---      takes a lock, so parallel requests cannot all pass the check.
+-- F03: enquiry rate limits are enforced inside one database function. The
+--      per-phone and per-address limits each take a lock, so parallel requests
+--      from one phone or one address cannot all pass. The overall limit of 100
+--      takes no lock and can overshoot under a burst; it is a circuit breaker,
+--      not a precise cap.
 
 alter table public.webhook_events add column if not exists attempts integer not null default 0;
 

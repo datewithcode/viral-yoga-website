@@ -51,8 +51,13 @@ jobs:
           node-version: 22
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
-      - run: supabase start -x studio,imgproxy,logflare,vector,realtime,storage-api,mailpit,inbucket
+          # Pinned like every other dependency. tests/functions.sh reads
+          # PUBLISHABLE_KEY out of `supabase status -o env`, which is a
+          # version-specific output; "latest" could change it under us.
+          version: 2.116.0
+      # Only names the tool knows. `inbucket` is not one of them and was silently
+      # ignored, which made it look like protection it was not.
+      - run: supabase start -x studio,imgproxy,logflare,vector,realtime,storage-api,mailpit
       - run: bash tests/run.sh
       - if: always()
         run: supabase stop --no-backup
