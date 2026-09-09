@@ -1,0 +1,4 @@
+# Cloudflare Pages. The dashboard asks for the same two values when you connect
+# the repository, so this file is mostly a record of what they should be.
+name = "viral-yoga"
+pages_build_output_dir = "dist"

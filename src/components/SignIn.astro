@@ -1,0 +1,185 @@
+---
+/**
+ * Sign in and sign up, in one form, with no password.
+ *
+ * There is no separate signup: the first time an email address is used, the
+ * account is created. Typing the same address later signs the same person back
+ * in. That is why the button says "Send sign-in link" rather than offering two
+ * choices the student would have to pick between.
+ *
+ * Self-contained. It reads `?plan=` from the address itself, so a student who
+ * came from a pricing button lands back on the right plan after clicking the
+ * emailed link. When someone signs in by typing the emailed code, it announces
+ * `vy:signedin` on `document`; the page decides what to do next.
+ *
+ * Pure Astro and Tailwind: no React, no framework, no client-side router. The
+ * markup below is rendered to plain HTML at build time, and the script is the
+ * only JavaScript involved.
+ */
+import { site } from '../data/site';
+
+interface Props {
+  /** Page the emailed link returns to. Must be a path on this site. */
+  redirectPath?: string;
+  /** Sentence above the form. Defaults to wording that suits the current setup. */
+  intro?: string;
+  /**
+   * Show the "type the code" field. The email only carries a code once a mail
+   * provider is connected, so this follows the site setting by default.
+   */
+  withCode?: boolean;
+}
+
+const {
+  redirectPath = '/my-membership/',
+  withCode = site.pricing.signInEmailHasCode,
+  intro = site.pricing.onlinePaymentsEnabled
+    ? 'New here? Sign in with your email to buy a membership. Already a member? The same sign-in shows your days remaining. No password: we email you a link.'
+    : 'Members: sign in with the email the studio has for you to see your plan and days remaining. No password: we email you a link. Not a member yet? Book a free trial from the home page.',
+} = Astro.props;
+
+// Handed to the script below, so it needs no bundled copy of the site config.
+const config = {
+  redirectPath,
+  withCode,
+  planNames: site.pricing.plans.map((p) => p.name),
+  paymentsOn: site.pricing.onlinePaymentsEnabled,
+};
+---
+
+<div data-signin-form data-config={JSON.stringify(config)}>
+  <p data-signin-intro class="mt-4 text-ink-soft">{intro}</p>
+
+  <form data-email-form class="mt-6 flex flex-col gap-3 sm:flex-row">
+    <label class="sr-only" for="signin-email">Email address</label>
+    <input
+      id="signin-email"
+      name="email"
+      type="email"
+      required
+      autocomplete="email"
+      placeholder="you@example.com"
+      class="field"
+    />
+    <button type="submit" class="btn-primary shrink-0">Send sign-in link</button>
+  </form>
+
+  <p data-email-msg class="mt-3 text-sm text-ink-soft" role="status" aria-live="polite" hidden></p>
+
+  <form data-code-form class="mt-4 flex flex-col gap-3 sm:flex-row" hidden>
+    <label class="sr-only" for="signin-code">Code from the email</label>
+    <input
+      id="signin-code"
+      name="code"
+      inputmode="numeric"
+      pattern="[0-9]{6,8}"
+      autocomplete="one-time-code"
+      placeholder="6-digit code from the email"
+      required
+      class="field"
+    />
+    <button type="submit" class="btn-primary shrink-0">Sign in with code</button>
+  </form>
+
+  <p data-code-msg class="mt-3 text-sm text-madder" role="alert" hidden></p>
+</div>
+
+<script>
+  import { supabase, isConfigured } from '../lib/supabase';
+
+  type Config = { redirectPath: string; withCode: boolean; planNames: string[]; paymentsOn: boolean };
+
+  document.querySelectorAll<HTMLElement>('[data-signin-form]').forEach((root) => {
+    const config: Config = JSON.parse(root.dataset.config ?? '{}');
+    const pick = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel)!;
+
+    const emailForm = pick<HTMLFormElement>('[data-email-form]');
+    const emailInput = pick<HTMLInputElement>('#signin-email');
+    const emailMsg = pick<HTMLParagraphElement>('[data-email-msg]');
+    const codeForm = pick<HTMLFormElement>('[data-code-form]');
+    const codeInput = pick<HTMLInputElement>('#signin-code');
+    const codeMsg = pick<HTMLParagraphElement>('[data-code-msg]');
+    const sendBtn = emailForm.querySelector('button')!;
+
+    if (!isConfigured) {
+      emailForm.hidden = true;
+      return;
+    }
+
+    // A student who tapped "Buy online" on a plan carries it in the address.
+    // Keep it through the round trip, so they come back to the plan they chose.
+    const wanted = new URLSearchParams(location.search).get('plan');
+    const plan = wanted && config.paymentsOn && config.planNames.includes(wanted) ? wanted : null;
+    if (plan) {
+      pick<HTMLParagraphElement>('[data-signin-intro]').textContent =
+        `You chose the ${plan} plan. Sign in with your email to pay. No password: we email you a link.`;
+    }
+
+    const say = (el: HTMLElement, text: string) => {
+      el.hidden = false;
+      el.textContent = text;
+    };
+
+    let pendingEmail = '';
+
+    emailForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim().toLowerCase();
+      if (!email) return;
+
+      // Tell them something is happening: the request can take a second or two.
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending…';
+      say(emailMsg, 'Sending the email…');
+
+      const redirect = location.origin + config.redirectPath + (plan ? '?plan=' + encodeURIComponent(plan) : '');
+      // shouldCreateUser is what makes this a signup as well as a sign-in: an
+      // address that has never been seen gets an account at this moment.
+      const { error } = await supabase!.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, emailRedirectTo: redirect },
+      });
+
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send sign-in link';
+
+      if (error) {
+        const m = error.message.toLowerCase();
+        say(
+          emailMsg,
+          m.includes('rate limit')
+            ? 'Too many sign-in emails were sent in the last hour. Please try again in a little while, or message us on WhatsApp.'
+            : 'Could not send the email: ' + error.message,
+        );
+        return;
+      }
+
+      pendingEmail = email;
+      if (config.withCode) {
+        say(emailMsg, `Email sent to ${email}. Type the code from it below, or open its link on this device. It works for one hour.`);
+        codeForm.hidden = false;
+        codeInput.focus();
+      } else {
+        // Without a code, the link only signs in the device that opens it, so
+        // say so plainly rather than letting them wonder why nothing happened.
+        say(emailMsg, `Email sent to ${email}. Open the link in it on this same device (phone or computer) to sign in here. It works for one hour.`);
+      }
+    });
+
+    codeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      codeMsg.hidden = true;
+      const { error } = await supabase!.auth.verifyOtp({
+        email: pendingEmail,
+        token: codeInput.value.trim(),
+        type: 'email',
+      });
+      if (error) {
+        say(codeMsg, 'That code did not work. Check the digits, or request a new email.');
+        return;
+      }
+      // The page owns what happens next: load the membership, redirect, whatever.
+      document.dispatchEvent(new CustomEvent('vy:signedin'));
+    });
+  });
+</script>
