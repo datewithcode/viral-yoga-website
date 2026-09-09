@@ -18,12 +18,9 @@ const links = [
 ];
 
 // Passed to the inline greeting below, so it needs no bundling and can run
-// before the first paint. Empty when Supabase is not configured.
-let projectRef = '';
-try {
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  if (supabaseUrl) projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-} catch {}
+// before the first paint. Comes from lib/supabase.ts so it can never disagree
+// with the key supabase-js actually writes.
+import { projectRef } from '../lib/supabase';
 ---
 <header class="sticky top-0 z-50 border-b border-ink/10 bg-chalk/90 backdrop-blur">
   <div class="container-site flex h-16 items-center justify-between gap-6">

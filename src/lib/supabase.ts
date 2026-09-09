@@ -11,6 +11,21 @@ const key = (import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY as string | undefin
 
 export const isConfigured = Boolean(url && key);
 
+/**
+ * The project name supabase-js builds its storage key from: it saves the
+ * session under `sb-<projectRef>-auth-token`. Exported so the site header can
+ * tell whether someone is signed in without loading the whole library on every
+ * page. Derive it ONLY from here: a second copy of this line is what broke the
+ * header when the environment variables were removed.
+ */
+export const projectRef = (() => {
+  try {
+    return url ? new URL(url).hostname.split('.')[0] : '';
+  } catch {
+    return '';
+  }
+})();
+
 export const supabase: SupabaseClient | null = isConfigured ? createClient(url!, key!) : null;
 
 export const PLAN_NAMES = ['1 month', '3 months', '6 months', '1 year'] as const;

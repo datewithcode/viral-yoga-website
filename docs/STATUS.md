@@ -216,7 +216,7 @@ If the online fee is passed to the student, they pay: 1 month ₹2,047, 3 months
 
 ## 9. Known limits to remember
 
-- **Sign-in link is device-bound.** The link signs in only the device that opens it. Requesting on a laptop and opening the email on a phone signs in the phone, not the laptop. There is no cross-device sync. After step 3 the email also carries a code to type on the device you are using; until then the page asks you to open the link on the same device.
+- **Sign-in link is device-bound. Read this before testing sign-in.** Ask for the link and open the email **on the same device**. Ask on your phone, open it on your phone. If you ask on the laptop and tap the link on your phone, the phone gets signed in and the laptop stays signed out, and it looks broken when it is not. This goes away at step 3: once the email provider is connected, the email also carries a code you can type on whichever device is in front of you.
 - **Until step 3, sign-in emails come from Supabase's built-in mailer:** only a few per hour, fixed wording, link only (no code). They do reach any address, so sign-in can be tested with a few real people, slowly.
 - Supabase allows 30 sign-in emails per hour by default. This must be raised in the dashboard before launch, or a busy launch day fails.
 - Free Supabase projects pause after 7 days without activity. Pro never pauses.
