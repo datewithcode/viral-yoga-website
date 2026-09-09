@@ -31,6 +31,18 @@ else
   bad "header and page agree on the project" "$REF is not in the shipped JavaScript"
 fi
 
+# The phone menu must sit OUTSIDE <header>. The header carries a blur, and a blur
+# makes an element the anchor for anything positioned inside it, so a menu left in
+# there sizes itself against the 64px header rather than the screen and collapses
+# to nothing. The markup looked fine; it only broke on a phone.
+HEAD_AT=$(grep -bo "</header>" dist/index.html | head -1 | cut -d: -f1)
+MENU_AT=$(grep -bo 'id="nav-mobile"' dist/index.html | head -1 | cut -d: -f1)
+if [ -n "$HEAD_AT" ] && [ -n "$MENU_AT" ] && [ "$MENU_AT" -gt "$HEAD_AT" ]; then
+  ok "phone menu sits outside the blurred header"
+else
+  bad "phone menu sits outside the blurred header" "it is inside <header>, so it collapses on a phone"
+fi
+
 expect_match "security headers ship with the site" "X-Frame-Options" dist/_headers
 expect_match "a real 404 page is built" "Page not found" dist/404.html
 expect_match "the address is not the retired host" "workers.dev" dist/index.html
