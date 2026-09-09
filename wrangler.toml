@@ -1,4 +1,13 @@
-# Cloudflare Pages. The dashboard asks for the same two values when you connect
-# the repository, so this file is mostly a record of what they should be.
-name = "viral-yoga"
-pages_build_output_dir = "dist"
+# Cloudflare. The dashboard's "Import a repository" flow now creates a Worker
+# and runs `npx wrangler deploy`, which reads this file. There is no server
+# code: this is a folder of static files, so only the assets block is needed.
+#
+# `name` must match the project name in the Cloudflare dashboard.
+name = "viral-yoga-website"
+compatibility_date = "2026-09-09"
+
+[assets]
+directory = "./dist"
+# Multi-page site, not a single-page app: an unknown address must show the real
+# 404 page rather than silently serving the home page at the wrong address.
+not_found_handling = "404-page"
