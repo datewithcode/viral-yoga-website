@@ -101,7 +101,7 @@ Two faults were found and fixed during this testing, both mine: the menu on phon
 - No Razorpay account, no email provider, no domain yet. Online payment is switched off on the site until Razorpay is connected.
 - All content and photos are placeholders.
 - Real Razorpay has never been called. Every payment test used a stand-in that behaves like Razorpay. The first real test-mode payment is still to be done.
-- Not tested: opening the UPI links in a real UPI app; the contact form's fallback to Netlify if Supabase is unreachable; the admin Edit button; real email delivery through Resend.
+- Not tested: opening the UPI links in a real UPI app; real email delivery through Resend. (The admin Edit button was tested end to end on 9 Sept: it saves the email and the member's page picks it up on reload. The Netlify form fallback no longer exists.)
 - Not built (later): automatic WhatsApp reminders through Meta's API; two-factor login for the owner; a member number and QR code on the membership page that the instructor scans to open that member in admin (identity check at the desk).
 
 ## 4b. What is switched off right now, and what turns it on
