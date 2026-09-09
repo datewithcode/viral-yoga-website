@@ -5,6 +5,8 @@ Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.c
 
 Sections: hero, why people come, classes, weekly timetable (per studio), about, your teacher and their achievements, photo gallery, two studio locations with Google Maps, student testimonials, common questions, contact form, WhatsApp button. Plus privacy, terms and refund pages, which Razorpay requires before it will approve an account.
 
+How all the pieces connect, with diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## 1. Run it locally
 
 You need Node.js 22 or newer.
