@@ -52,6 +52,20 @@ All names, phone numbers, addresses, timetable entries, testimonials, achievemen
 
 **Still to do on GitHub (owner, 1 minute):** Settings > Rules > Rulesets > protect-main > Require status checks: add `functions-typecheck` and `functions-integration`. Until then only the website build is required before a merge to main.
 
+## 2c. Confirmed working on the live site, 9 September
+
+Checked by the owner on a real phone against the live site, not by me on a test copy:
+
+- [x] **Sign in.** Email link requested on the phone, opened on the same phone, signed in. The menu changed from "Sign in" to "Your membership".
+- [x] **Contact form.** Sent from the phone, landed on the thank-you page.
+- [x] **Enquiry reaches admin.** Appeared under Enquiries with name, number, studio and message.
+- [x] **One-tap WhatsApp reply.** Opens WhatsApp with the message already written, addressed to the enquirer.
+- [x] **Done button.** Clears the enquiry from the list.
+
+That is the entire loop the instructor will use every day until online payment is switched on: someone asks about a trial class, the instructor sees it on their phone, replies in one tap, and clears it.
+
+Two faults were found and fixed during this testing, both mine: the menu on phones collapsed and let the page scroll behind it, and the footer's row of links could not wrap, which made every page scroll sideways on any phone narrower than 477px.
+
 ## 3. How it works
 
 ### For a student
