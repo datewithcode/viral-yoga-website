@@ -1,7 +1,11 @@
 ---
 import { site } from '../data/site';
 import { isConfigured } from '../lib/supabase';
+// Enquiries go to Supabase, which works on any host. The other two providers
+// add a host-specific fallback for the rare case where that call fails.
 const isNetlify = site.formProvider === 'netlify';
+const isFormspree = site.formProvider === 'formspree';
+const hasHostFallback = isNetlify || isFormspree;
 const whatsappHref = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(site.whatsappMessage)}`;
 ---
 <section id="contact" class="section bg-sand/40">
@@ -30,17 +34,26 @@ const whatsappHref = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(s
       </dl>
     </div>
 
+    <noscript>
+      <style>#contact-form { display: none; }</style>
+      <p class="rounded-lg border border-ink/15 bg-chalk p-6 text-ink-soft sm:p-8">
+        This form needs JavaScript. Please message us on{' '}
+        <a class="underline underline-offset-4" href={whatsappHref} target="_blank" rel="noopener">WhatsApp</a>{' '}
+        or call <a class="underline underline-offset-4" href={`tel:${site.phone.replace(/\s/g, '')}`}>{site.phone}</a> instead.
+      </p>
+    </noscript>
+
     <form
       id="contact-form"
       data-supabase={isConfigured ? 'true' : undefined}
       name="contact"
       method="POST"
-      action={isNetlify ? '/thanks/' : site.formspreeEndpoint}
+      action={isNetlify ? '/thanks/' : isFormspree ? site.formspreeEndpoint : '/thanks/'}
       class="rounded-lg border border-ink/15 bg-chalk p-6 sm:p-8"
       {...(isNetlify ? { 'data-netlify': 'true', 'netlify-honeypot': 'bot-field' } : {})}
     >
       {isNetlify && <input type="hidden" name="form-name" value="contact" />}
-      {!isNetlify && <input type="hidden" name="_next" value={new URL('/thanks/', site.url).toString()} />}
+      {isFormspree && <input type="hidden" name="_next" value={new URL('/thanks/', site.url).toString()} />}
       <p class="hidden">
         <label>Do not fill this in if you are human: <input name="bot-field" /></label>
       </p>
@@ -86,9 +99,12 @@ const whatsappHref = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(s
 </section>
 
 <script>
-  // With Supabase configured, enquiries go to the admin page (and email).
-  // Without it, or if that fails, the form posts to Netlify Forms as before.
+  // Enquiries go to Supabase, which puts them on the admin page and emails a
+  // copy. Only Netlify and Formspree offer somewhere to fall back to; on any
+  // other host the honest answer is to point the visitor at WhatsApp rather
+  // than post the form somewhere that will not accept it.
   import { supabase } from '../lib/supabase';
+  import { site } from '../data/site';
   const form = document.getElementById('contact-form') as HTMLFormElement | null;
   if (form && form.dataset.supabase && supabase) {
     let fallback = false;
@@ -107,7 +123,14 @@ const whatsappHref = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(s
       if (status >= 400 && status < 500) { try { detail = (await (error as any).context.json())?.error ?? ''; } catch {} }
       btn.disabled = false; btn.textContent = 'Send message';
       if (detail) { err.textContent = detail; err.hidden = false; return; }
-      fallback = true; form.requestSubmit();
+      if (site.formProvider === 'netlify' || site.formProvider === 'formspree') {
+        fallback = true; form.requestSubmit();
+        return;
+      }
+      err.innerHTML = 'We could not send that just now. Please message us on '
+        + '<a class="underline underline-offset-4" href="https://wa.me/' + site.whatsapp + '">WhatsApp</a>'
+        + ' and we will reply the same day.';
+      err.hidden = false;
     });
   }
 </script>

@@ -88,6 +88,21 @@ The privacy page describes what the site genuinely does with personal informatio
 
 ## 3. Go live
 
+### Hosting on Cloudflare Pages
+
+The site is a folder of static files, so any host works. Nothing needs configuring: the Supabase settings are in `src/data/site.ts` and are public by design, so the build has no secrets and no environment variables.
+
+1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com), then **Workers & Pages**, **Create**, **Pages**, **Connect to Git**.
+2. Authorise GitHub for the `datewithcode` account and pick `viral-yoga-website`.
+3. Settings: framework preset **Astro**, build command `npm run build`, output directory `dist`, production branch `main`. Leave environment variables empty.
+4. **Save and Deploy.** The first build takes about a minute and gives you an address ending in `.pages.dev`.
+5. Send me that address. It goes into `site.url` in `src/data/site.ts`, which is used for link previews and the reminder messages sent from the admin page.
+6. In Supabase, **Authentication > URL Configuration**, add the new address to **Site URL** and to **Redirect URLs**, as `https://YOUR-SITE.pages.dev/my-membership/`. Sign-in emails will not work until this is done.
+
+`public/_headers` carries the security and caching rules, the same ones `netlify.toml` sets. Both files can stay: whichever host builds the site reads its own.
+
+
+
 ### Netlify (recommended, supports drag-and-drop)
 
 1. Run `npm run build`.

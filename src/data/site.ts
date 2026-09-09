@@ -75,10 +75,21 @@ export const site = {
   facebook: '',
 
   // --- Contact form -----------------------------------------------------------
-  // 'netlify'  -> works automatically when the site is hosted on Netlify.
-  // 'formspree'-> works on any host (Vercel, etc.). Paste your endpoint below.
-  formProvider: 'netlify' as 'netlify' | 'formspree',
+  // 'supabase' -> the enquiry goes straight to the admin page. Works on any host.
+  //               This is the one to use; the other two are only fallbacks for a
+  //               host-provided form service.
+  // 'netlify'  -> also posts to Netlify Forms. Only works when hosted on Netlify.
+  // 'formspree'-> posts to Formspree instead. Paste your endpoint below.
+  formProvider: 'supabase' as 'supabase' | 'netlify' | 'formspree',
   formspreeEndpoint: 'https://formspree.io/f/YOUR_FORM_ID',
+
+  // --- Backend ------------------------------------------------------------------
+  // The Supabase project. Both values are public by design: the publishable key
+  // can only do what the database's row-level security allows, which is why it is
+  // safe in the browser and safe here. Environment variables of the same name
+  // override these, which is how a different project is used for testing.
+  supabaseUrl: 'https://sodtpweedjcvnvuomyzc.supabase.co',
+  supabasePublishableKey: 'sb_publishable_MSDuW3g4WWG_T3GuHCor5g_Hg3MHSMM',
 
   // --- Images -------------------------------------------------------------------
   // Put your photos in /public/images and update the paths here.
