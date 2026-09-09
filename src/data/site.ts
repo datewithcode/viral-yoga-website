@@ -62,7 +62,7 @@ export const site = {
   description:
     'Viral Yoga runs morning and evening yoga classes for beginners and regular practitioners at two studios in Anjar and Adipur, Kutch, Gujarat.',
   // Used for canonical URLs and social previews. Update after you deploy.
-  url: 'https://startling-beignet-f4a10f.netlify.app',
+  url: 'https://viral-yoga-website.supabase-root.workers.dev',
   foundedYear: 2016,
 
   // --- Contact ----------------------------------------------------------------

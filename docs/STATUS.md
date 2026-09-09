@@ -2,7 +2,7 @@
 
 Last updated: 8 September 2026, after the security review fixes
 
-Live site (placeholder content): https://startling-beignet-f4a10f.netlify.app  
+Live site (placeholder content): https://viral-yoga-website.supabase-root.workers.dev  
 Code: https://github.com/datewithcode/viral-yoga-website
 
 ## 1. What this is
@@ -34,8 +34,8 @@ Everything is built and tested. The public website is live with placeholder cont
 | Backend: database, security rules, four server functions | Yes | Yes, 51 automated cases run on every code change | Yes, Supabase project Viral-Yoga (Mumbai) |
 | Security review (external, 8 Sept): 2 high, 3 medium, 1 low findings | All fixed | Yes, each has a test | Yes |
 | Real Razorpay account | Not started | No | No |
-| Deployment: Cloudflare Pages | Yes | Yes, built and tested with no configuration | Waiting for you to connect it, see README section 3 |
-| Deployment: Netlify | Yes | Yes | Live but frozen: the team ran out of build credits on 8 Sept, so deploys are paused until the billing cycle resets |
+| Deployment: Cloudflare | Yes | Yes | Live at viral-yoga-website.supabase-root.workers.dev, auto-deploys from GitHub |
+| Deployment: Netlify | Yes | Yes | Retired 9 Sept when the build credits ran out. The old address still serves an old copy; nothing depends on it |
 | Deployment: Supabase project | Yes | Yes | Yes, free tier for now |
 | Email provider (Resend) | Not started | No | No |
 
@@ -130,7 +130,6 @@ The teacher section is a different case: it is **built and showing right now**, 
 - [ ] Your UPI ID (the one that receives money)
 - [ ] Current member list as a spreadsheet: name, phone, email, plan, start date
 - [x] Supabase project created and connected (8 Sept)
-- [ ] Connect Cloudflare Pages, about 5 minutes, free and no build limits at this size. Steps are in README section 3. Then send me the `.pages.dev` address and add it to Supabase's redirect list
 - [ ] Domain: buy `viralyoga.in` (about ₹500 to ₹900 a year) at Namecheap or GoDaddy India, domain only, no add-ons. Needed for the email provider and the final web address. Waits until you are ready to spend.
 - [ ] Razorpay: create an account at razorpay.com. Test mode works immediately; start KYC in parallel for live payments
 - [ ] Resend: create a free account at resend.com for sending emails, and verify the domain above
@@ -142,6 +141,19 @@ The teacher section is a different case: it is **built and showing right now**, 
 Nothing in the system can shorten, pause or cancel a membership. If a refund is given in Razorpay today, the student's page keeps showing an active membership and the admin lists keep counting them, with no way to correct it except editing the database by hand.
 
 The refunds page was shortened on 8 September so it no longer promises pauses, extensions or part refunds, because promising them would be dishonest. It now says refunds are looked at case by case, which is true. **Build the capability before the pilot**, then the page can say more: an admin button to end or shorten a membership, and handling Razorpay's refund notification so a refunded membership stops showing as active.
+
+## 5c. Hosting, as of 9 September
+
+The site runs on **Cloudflare** at https://viral-yoga-website.supabase-root.workers.dev and rebuilds itself whenever code reaches GitHub. It is free, with no build limits at this size.
+
+It moved off Netlify because that account ran out of monthly build credits, which froze deploys. The old Netlify address still serves an older copy of the site; nothing points at it any more, and it can be deleted whenever you like.
+
+The build needs no settings at all. The Supabase address and key live in `src/data/site.ts`, and both are public by design, so there is nothing to configure on a new host and nothing to forget.
+
+**Two settings to confirm in the Cloudflare dashboard:**
+
+- [ ] Production branch must be `main`, not `develop`. `develop` is work in progress; `main` is what has been released and checked.
+- [ ] The address above must be in Supabase under Authentication, URL Configuration, as both the Site URL and a redirect URL ending `/my-membership/`. Sign-in emails fail silently until it is.
 
 ## 5b. Check these the day Razorpay and the domain arrive
 
