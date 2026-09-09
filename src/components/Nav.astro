@@ -57,7 +57,9 @@ import { projectRef } from '../lib/supabase';
     </button>
   </div>
 
-  <nav id="nav-mobile" class="hidden border-t border-ink/10 bg-chalk lg:hidden" aria-label="Main mobile">
+</header>
+
+  <nav id="nav-mobile" class="fixed inset-x-0 bottom-0 top-16 z-40 hidden overflow-y-auto overscroll-contain border-t border-ink/10 bg-chalk lg:hidden" aria-label="Main mobile">
     <div class="container-site flex flex-col py-3">
       {links.map((l) => (
         <a href={l.href} class="py-3 text-lg text-ink border-b border-ink/5 last:border-0">{l.label}</a>
@@ -66,7 +68,6 @@ import { projectRef } from '../lib/supabase';
       <a href="/#contact" class="btn-primary mt-3 mb-2">{site.copy.heroPrimaryButton}</a>
     </div>
   </nav>
-</header>
 
 <script is:inline define:vars={{ projectRef }}>
   // Show the signed-in state in the header without loading the Supabase library
@@ -102,14 +103,24 @@ import { projectRef } from '../lib/supabase';
   if (toggle && menu) {
     const open = toggle.querySelector('.icon-open');
     const close = toggle.querySelector('.icon-close');
+
     const setOpen = (isOpen: boolean) => {
       menu.classList.toggle('hidden', !isOpen);
       open?.classList.toggle('hidden', isOpen);
       close?.classList.toggle('hidden', !isOpen);
       toggle.setAttribute('aria-expanded', String(isOpen));
       toggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+      // Hold the page still behind the open menu. It is <html> that scrolls
+      // here, not <body>: locking the wrong one does nothing, and on this
+      // layout it also makes the page jump.
+      document.documentElement.style.overflow = isOpen ? 'hidden' : '';
     };
+
     toggle.addEventListener('click', () => setOpen(menu.classList.contains('hidden')));
     menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+    // Escape closes it, and so does turning the phone sideways into the layout
+    // that has no hamburger, which would otherwise leave the page frozen.
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.classList.contains('hidden')) setOpen(false); });
+    window.addEventListener('resize', () => { if (window.innerWidth >= 1024 && !menu.classList.contains('hidden')) setOpen(false); });
   }
 </script>
