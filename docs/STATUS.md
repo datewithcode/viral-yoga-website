@@ -34,7 +34,8 @@ Everything is built and tested. The public website is live with placeholder cont
 | Backend: database, security rules, four server functions | Yes | Yes, 51 automated cases run on every code change | Yes, Supabase project Viral-Yoga (Mumbai) |
 | Security review (external, 8 Sept): 2 high, 3 medium, 1 low findings | All fixed | Yes, each has a test | Yes |
 | Real Razorpay account | Not started | No | No |
-| Deployment: Netlify | Yes | Yes | Yes, auto-deploys from GitHub `main` |
+| Deployment: Cloudflare Pages | Yes | Yes, built and tested with no configuration | Waiting for you to connect it, see README section 3 |
+| Deployment: Netlify | Yes | Yes | Live but frozen: the team ran out of build credits on 8 Sept, so deploys are paused until the billing cycle resets |
 | Deployment: Supabase project | Yes | Yes | Yes, free tier for now |
 | Email provider (Resend) | Not started | No | No |
 
@@ -129,6 +130,7 @@ The teacher section is a different case: it is **built and showing right now**, 
 - [ ] Your UPI ID (the one that receives money)
 - [ ] Current member list as a spreadsheet: name, phone, email, plan, start date
 - [x] Supabase project created and connected (8 Sept)
+- [ ] Connect Cloudflare Pages, about 5 minutes, free and no build limits at this size. Steps are in README section 3. Then send me the `.pages.dev` address and add it to Supabase's redirect list
 - [ ] Domain: buy `viralyoga.in` (about ₹500 to ₹900 a year) at Namecheap or GoDaddy India, domain only, no add-ons. Needed for the email provider and the final web address. Waits until you are ready to spend.
 - [ ] Razorpay: create an account at razorpay.com. Test mode works immediately; start KYC in parallel for live payments
 - [ ] Resend: create a free account at resend.com for sending emails, and verify the domain above
