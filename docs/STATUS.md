@@ -294,4 +294,5 @@ npm run build      # produces the dist folder for Netlify
 - `src/pages/admin.astro`: the admin page. `src/pages/my-membership.astro`: the student page.
 - `supabase/`: database schema and the four server functions.
 - `README.md`: full setup instructions for every service.
+- `docs/ARCHITECTURE.md`: how every piece connects, with diagrams of each flow.
 - `docs/superpowers/specs/`: design notes.
