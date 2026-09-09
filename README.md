@@ -92,10 +92,12 @@ The privacy page describes what the site genuinely does with personal informatio
 
 The site is a folder of static files, so any host works. Nothing needs configuring: the Supabase settings are in `src/data/site.ts` and are public by design, so the build has no secrets and no environment variables.
 
-1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com), then **Workers & Pages**, **Create**, **Pages**, **Connect to Git**.
+1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com), then **Compute**, **Workers & Pages**, **Create application**, **Import a repository**.
 2. Authorise GitHub for the `datewithcode` account and pick `viral-yoga-website`.
-3. Settings: framework preset **Astro**, build command `npm run build`, output directory `dist`, production branch `main`. Leave environment variables empty.
-4. **Save and Deploy.** The first build takes about a minute and gives you an address ending in `.pages.dev`.
+3. Project name `viral-yoga-website`, build command `npm run build`, deploy command `npx wrangler deploy`. Leave environment variables empty.
+4. **Deploy.** The first build takes about a minute and gives you an address ending in `.workers.dev`.
+
+The deploy command reads `wrangler.toml`, which says the site is a folder of static files in `dist` with a real 404 page. The project name in the dashboard must match the `name` in that file.
 5. Send me that address. It goes into `site.url` in `src/data/site.ts`, which is used for link previews and the reminder messages sent from the admin page.
 6. In Supabase, **Authentication > URL Configuration**, add the new address to **Site URL** and to **Redirect URLs**, as `https://YOUR-SITE.pages.dev/my-membership/`. Sign-in emails will not work until this is done.
 
