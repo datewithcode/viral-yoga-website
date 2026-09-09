@@ -155,6 +155,35 @@ The build needs no settings at all. The Supabase address and key live in `src/da
 - [ ] Production branch must be `main`, not `develop`. `develop` is work in progress; `main` is what has been released and checked.
 - [ ] The address above must be in Supabase under Authentication, URL Configuration, as both the Site URL and a redirect URL ending `/my-membership/`. Sign-in emails fail silently until it is.
 
+## 5d. Getting your 200 existing members onto the website
+
+The email address is the only thing that connects a member the studio knows to an account they sign in with. A member with no email on file signs in and sees "no membership found", assumes the site is broken, and calls the instructor. That is the one thing that will cause real trouble at 200 members, so it is worth doing in the right order.
+
+**How it behaves, all three cases tested rather than assumed:**
+
+| Situation | What the member sees |
+|---|---|
+| Email is on their record, they sign in | Their plan, straight away. Nothing to link, nothing to approve |
+| They sign in before you have their email | "No membership found" |
+| You add the email afterwards, they reload | Their plan appears. **They do not sign in again** |
+
+That last row is why none of this is risky. Nobody gets stranded, and a mistake is always fixable in ten seconds.
+
+**Three ways an email gets onto a record:**
+
+1. **In the spreadsheet, before the import.** Best for all 200 at once. Columns: name, phone, email, plan, start date.
+2. **In admin, one at a time.** Find them in the Active list, tap **Edit**, it asks for name then email, press OK. Use this for anyone missed.
+3. **Automatically**, once Razorpay is on. Anyone buying online types their own name and email.
+
+**The order to do this in:**
+
+- [ ] **Collect emails from today**, at every renewal and every new joiner. The instructor is already having that conversation and taking the money, so it costs seconds.
+- [ ] **Send one WhatsApp message to all 200 members** asking them to reply with their email address. You already have all of them there, so this gets most of them in days rather than waiting up to a year for everyone to renew. Word it as a benefit: we are putting your membership online so you can check your remaining days any time.
+- [ ] **Send the spreadsheet for import** with whatever emails you have by then.
+- [ ] **Only then announce the membership page.** Wait until roughly four in five members have an email on file.
+
+**Keep those last two announcements separate.** The website itself, classes, timetable, prices, locations and contact, works for everybody today and can be shared freely, on Instagram, in print, anywhere. "Check your days remaining online" only works for someone with an email on file. Announcing that one early is what generates the phone calls.
+
 ## 5b. Check these the day Razorpay and the domain arrive
 
 Four things cannot be settled until those accounts exist. They are written down here so none of them is forgotten. Agreed with the owner on 8 September: leave them until then, then work through this list.
