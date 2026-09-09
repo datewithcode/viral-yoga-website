@@ -17,6 +17,9 @@ jobs:
       - run: npm ci
       - run: npx astro check
       - run: npm run build
+      # Checks on the built output that a type-check cannot see, including the
+      # one that silently disabled the header greeting on the live site.
+      - run: bash tests/build-checks.sh
 
   # Type-checks every Edge Function with the pinned imports in its deno.json.
   functions-typecheck:
