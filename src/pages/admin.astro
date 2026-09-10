@@ -286,7 +286,7 @@ import { isConfigured } from '../lib/supabase';
       if (!rows.length) { el.innerHTML = '<p class="text-sm text-ink-soft">Nobody here.</p>'; return; }
       el.innerHTML = `<ul class="divide-y divide-ink/10 rounded-lg border border-ink/15 bg-white/40">${rows.map((m) => rowHtml(m, withReminder)).join('')}</ul>`;
       el.querySelectorAll<HTMLButtonElement>('[data-remind]').forEach((b) => b.addEventListener('click', () => remind(rows.find((r) => r.id === Number(b.dataset.remind))!)));
-      el.querySelectorAll<HTMLButtonElement>('[data-edit]').forEach((b) => b.addEventListener('click', () => editMember(rows.find((r) => r.id === Number(b.dataset.edit))!.member)));
+      el.querySelectorAll<HTMLButtonElement>('[data-edit]').forEach((b) => b.addEventListener('click', () => editMember(rows.find((r) => r.id === Number(b.dataset.edit))!.member, b.closest('li')!)));
     }
 
     function rowHtml(m: Membership, withReminder: boolean) {
@@ -319,14 +319,50 @@ import { isConfigured } from '../lib/supabase';
       await load();
     }
 
-    async function editMember(member: Member) {
-      const name = window.prompt('Name', member.name ?? '');
-      if (name === null) return;
-      const email = window.prompt('Email (used for their membership login). Leave blank for none.', member.email ?? '');
-      if (email === null) return;
-      const { error } = await supabase!.from('members').update({ name: name.trim(), email: email.trim() || null }).eq('id', member.id);
-      if (error) window.alert('Could not save: ' + error.message);
-      await load();
+    // A small form inside the member's own row, in the site's style, instead of
+    // the browser's bare prompt dialogs.
+    function editMember(member: Member, row: HTMLElement) {
+      document.querySelector('[data-edit-form]')?.remove();
+      const form = document.createElement('form');
+      form.setAttribute('data-edit-form', '');
+      form.className = 'col-span-full mt-1 grid gap-3 rounded-md border border-ink/15 bg-sand/30 p-4 sm:grid-cols-2';
+      form.innerHTML = `
+        <div>
+          <label class="label">Name</label>
+          <input name="name" required minlength="2" class="field bg-white" />
+        </div>
+        <div>
+          <label class="label">Email (for their login, optional)</label>
+          <input name="email" type="email" class="field bg-white" />
+        </div>
+        <div class="flex gap-2 sm:col-span-2">
+          <button type="submit" class="btn-primary !px-4 !py-2 text-xs">Save</button>
+          <button type="button" data-cancel class="btn-ghost !px-4 !py-2 text-xs">Cancel</button>
+          <p data-err class="self-center text-sm text-madder" hidden></p>
+        </div>`;
+      row.appendChild(form);
+      const nameEl = form.querySelector<HTMLInputElement>('[name="name"]')!;
+      const emailEl = form.querySelector<HTMLInputElement>('[name="email"]')!;
+      nameEl.value = member.name ?? '';
+      emailEl.value = member.email ?? '';
+      nameEl.focus();
+      form.querySelector('[data-cancel]')!.addEventListener('click', () => form.remove());
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const err = form.querySelector<HTMLElement>('[data-err]')!;
+        const save = form.querySelector<HTMLButtonElement>('[type="submit"]')!;
+        err.hidden = true; save.disabled = true;
+        const { error } = await supabase!
+          .from('members')
+          .update({ name: nameEl.value.trim(), email: emailEl.value.trim().toLowerCase() || null })
+          .eq('id', member.id);
+        if (error) {
+          err.textContent = error.code === '23505' ? 'That email already belongs to another member.' : 'Could not save: ' + error.message;
+          err.hidden = false; save.disabled = false;
+          return;
+        }
+        await load();
+      });
     }
 
     async function loadEnquiries(): Promise<number> {
