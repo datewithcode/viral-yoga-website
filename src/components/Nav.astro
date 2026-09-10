@@ -41,7 +41,7 @@ import { projectRef } from '../lib/supabase';
       {links.map((l) => (
         <a href={l.href} class="text-[0.95rem] text-ink-soft hover:text-ink">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost !py-2.5 !px-5 text-sm" data-signin>{signinLabel}</a>
+      <a href="/my-membership/" class="btn-ghost !py-2.5 !px-5 text-sm" data-signin data-signin-default={signinLabel}>{signinLabel}</a>
       <a href="/#contact" class="btn-primary !py-2.5 !px-5 text-sm">{site.copy.heroPrimaryButton}</a>
     </nav>
 
@@ -64,7 +64,7 @@ import { projectRef } from '../lib/supabase';
       {links.map((l) => (
         <a href={l.href} class="py-3 text-lg text-ink border-b border-ink/5 last:border-0">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost mt-4" data-signin>{signinLabel}</a>
+      <a href="/my-membership/" class="btn-ghost mt-4" data-signin data-signin-default={signinLabel}>{signinLabel}</a>
       <a href="/#contact" class="btn-primary mt-3 mb-2">{site.copy.heroPrimaryButton}</a>
     </div>
   </nav>
@@ -88,10 +88,13 @@ import { projectRef } from '../lib/supabase';
         var uid = session.user && session.user.id;
         if (cached && uid && cached.id === uid) name = String(cached.name || '').trim().split(' ')[0];
       } catch (e) {}
-      var label = name ? 'Hi, ' + name : 'Your membership';
+      // Same four states as syncHeader() in lib/supabase.ts. Keep them in step.
+      var staff = session.user && session.user.app_metadata && session.user.app_metadata.role === 'staff';
+      var label = staff ? 'Admin' : (name ? 'Hi, ' + name : 'Your membership');
       document.querySelectorAll('[data-signin]').forEach(function (a) {
         a.textContent = label;
-        a.title = 'Your membership';
+        a.title = label;
+        if (staff) a.href = '/admin/';
       });
     }
   } catch (e) {}

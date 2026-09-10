@@ -28,6 +28,47 @@ export const projectRef = (() => {
 
 export const supabase: SupabaseClient | null = isConfigured ? createClient(url!, key!) : null;
 
+/**
+ * The header button has four states. This is the ONLY place they are decided
+ * for pages that load supabase-js; Nav.astro's inline script mirrors the same
+ * rules for the first paint, before this library is available.
+ *
+ *   no session                    -> "Sign in"          -> /my-membership/
+ *   owner (app_metadata.role)     -> "Admin"            -> /admin/
+ *   member with a cached name     -> "Hi, <first name>" -> /my-membership/
+ *   signed in, nothing else known -> "Your membership"  -> /my-membership/
+ */
+export function syncHeader(session: { user?: { id?: string; app_metadata?: Record<string, unknown> } } | null): void {
+  const links = document.querySelectorAll<HTMLAnchorElement>('[data-signin]');
+  if (!links.length) return;
+  let label = '';
+  let href = '/my-membership/';
+  if (session?.user) {
+    if (session.user.app_metadata?.role === 'staff') {
+      label = 'Admin';
+      href = '/admin/';
+    } else {
+      let name = '';
+      try {
+        const cached = JSON.parse(localStorage.getItem('vy-member') || 'null');
+        if (cached && cached.id === session.user.id) name = String(cached.name || '').trim().split(' ')[0];
+      } catch {}
+      label = name ? `Hi, ${name}` : 'Your membership';
+    }
+  }
+  links.forEach((a) => {
+    a.textContent = label || a.dataset.signinDefault || 'Sign in';
+    a.href = href;
+    a.title = label || '';
+  });
+}
+
+/** Keep the header right as people sign in and out, without a refresh. */
+export function watchHeader(): void {
+  if (!supabase) return;
+  supabase.auth.onAuthStateChange((_event, session) => syncHeader(session));
+}
+
 export const PLAN_NAMES = ['1 month', '3 months', '6 months', '1 year'] as const;
 
 export const inr = (paise: number) => '₹' + Math.round(paise / 100).toLocaleString('en-IN');
