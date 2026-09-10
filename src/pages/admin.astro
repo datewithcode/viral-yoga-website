@@ -63,18 +63,26 @@ import { isConfigured } from '../lib/supabase';
             </select>
           </div>
           <div>
+            <label for="add-amount" class="label">Amount received (₹)</label>
+            <input id="add-amount" name="amount" type="number" inputmode="numeric" min="0" step="1" required class="field" />
+          </div>
+          <div>
             <label for="add-source" class="label">Paid by</label>
             <select id="add-source" name="source" class="field">
               <option value="upi">UPI</option>
               <option value="cash">Cash</option>
+              <option value="razorpay">Razorpay (from the attention list)</option>
             </select>
           </div>
           <div>
             <label for="add-start" class="label">Start date</label>
             <input id="add-start" name="starts_on" type="date" required class="field" />
+            <p id="add-start-hint" class="mt-1 text-xs text-ink-soft" hidden></p>
           </div>
+          <input type="hidden" id="add-payment-id" name="razorpay_payment_id" />
+          <input type="hidden" id="add-order-id" name="razorpay_order_id" />
           <div class="flex gap-3 sm:col-span-2 lg:col-span-3">
-            <button type="submit" class="btn-primary">Save payment</button>
+            <button type="submit" id="add-save" class="btn-primary">Save payment</button>
             <button type="button" id="cancel-add" class="btn-ghost">Cancel</button>
             <p id="add-error" class="self-center text-sm text-madder" hidden></p>
           </div>
@@ -125,8 +133,13 @@ import { isConfigured } from '../lib/supabase';
             <div id="list-lapsed" class="mt-4"></div>
           </div>
           <div>
+            <h2 class="text-h3">Recent payments</h2>
+            <p class="mt-1 text-sm text-ink-soft">Everything recorded in the last 7 days, newest first. Tap WhatsApp to send the member a confirmation.</p>
+            <div id="list-recent" class="mt-4"></div>
+          </div>
+          <div>
             <h2 class="text-h3">Payments that need attention</h2>
-            <p class="mt-1 text-sm text-ink-soft">Razorpay payments the system could not record on its own. Add them by hand, then they can be ignored. Payments it is still retrying by itself do not appear here, so nothing in this list is about to sort itself out.</p>
+            <p class="mt-1 text-sm text-ink-soft">Razorpay payments the system could not record on its own. Tap "Add this payment" to record it against the right member, or "Done" if it has been dealt with. Payments it is still retrying by itself do not appear here, so nothing in this list is about to sort itself out.</p>
             <div id="list-events" class="mt-4"></div>
           </div>
         </div>
@@ -144,9 +157,19 @@ import { isConfigured } from '../lib/supabase';
 
   type Member = { id: number; name: string; phone: string; email: string | null };
   type Membership = {
-    id: number; plan: string; amount_paise: number; starts_on: string; ends_on: string; source: string;
+    id: number; plan: string; amount_paise: number; starts_on: string; ends_on: string; source: string; created_at: string;
     member: Member; reminders: { sent_at: string }[];
   };
+  const todayIndia = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const addDays = (iso: string, n: number) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  // 98765 43210, 098765 43210, +91 98765 43210 all become 919876543210.
+  const normalisePhone = (raw: string) => {
+    let digits = raw.replace(/\D/g, '');
+    if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+    return digits.length === 10 ? '91' + digits : digits;
+  };
+  const PHONE_OK = /^[0-9]{12,15}$/;
+  const paymentIdOf = (e: any) => String(e?.payload?.payload?.payment?.entity?.id ?? '');
 
   const escape = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
@@ -187,16 +210,30 @@ import { isConfigured } from '../lib/supabase';
     $('logout').addEventListener('click', async () => { await supabase!.auth.signOut(); await refreshAuth(); });
 
     // ---- Data -------------------------------------------------------------------
+    // The API hands back at most 1,000 rows per request. Two hundred members
+    // renewing monthly get there within a year, so read in pages.
+    async function allMemberships(): Promise<{ data: Membership[]; error: { message: string } | null }> {
+      const PAGE = 1000; const rows: Membership[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase!
+          .from('memberships')
+          .select('id, plan, amount_paise, starts_on, ends_on, source, created_at, member:members(id, name, phone, email), reminders(sent_at)')
+          .order('ends_on', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) return { data: rows, error };
+        rows.push(...(data as unknown as Membership[]));
+        if (!data || data.length < PAGE) return { data: rows, error: null };
+      }
+    }
+
     async function load() {
-      const { data, error } = await supabase!
-        .from('memberships')
-        .select('id, plan, amount_paise, starts_on, ends_on, source, member:members(id, name, phone, email), reminders(sent_at)')
-        .order('ends_on', { ascending: false });
+      const { data, error } = await allMemberships();
       if (error) { $('summary').textContent = 'Could not load: ' + error.message; return; }
 
       // Latest membership per member decides their status.
       const latest = new Map<number, Membership>();
-      for (const m of (data as unknown as Membership[])) {
+      for (const m of data) {
         if (!latest.has(m.member.id)) latest.set(m.member.id, m);
       }
       const rows = [...latest.values()];
@@ -216,7 +253,32 @@ import { isConfigured } from '../lib/supabase';
       render('list-due', due, true);
       render('list-active', active, false);
       render('list-lapsed', lapsed, false);
+      renderRecent(data);
       await loadEvents();
+    }
+
+    function renderRecent(all: Membership[]) {
+      const since = Date.now() - 7 * 86400000;
+      const rows = all.filter((m) => Date.parse(m.created_at) >= since).sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const el = $('list-recent');
+      if (!rows.length) { el.innerHTML = '<p class="text-sm text-ink-soft">No payments in the last 7 days.</p>'; return; }
+      el.innerHTML = `<ul class="divide-y divide-ink/10 rounded-lg border border-ink/15 bg-white/40">${rows.map((m) => `
+        <li class="grid gap-3 p-4 text-sm sm:grid-cols-[1.4fr_1fr_1.2fr_auto] sm:items-center">
+          <div>
+            <span class="font-medium">${escape(m.member.name || 'No name yet')}</span>
+            <span class="block text-ink-soft">${escape(m.member.phone)}</span>
+          </div>
+          <div>${escape(m.plan)} · ${inr(m.amount_paise)}<span class="block text-ink-soft">${escape(m.source)}</span></div>
+          <div>${formatDate(m.starts_on)} to ${formatDate(m.ends_on)}<span class="block text-ink-soft">recorded ${new Date(m.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span></div>
+          <div class="flex gap-2 sm:justify-end"><button data-confirm="${m.id}" class="btn-primary !px-4 !py-2 text-xs">WhatsApp</button></div>
+        </li>`).join('')}</ul>`;
+      el.querySelectorAll<HTMLButtonElement>('[data-confirm]').forEach((b) => b.addEventListener('click', () => {
+        const m = rows.find((r) => r.id === Number(b.dataset.confirm))!;
+        const first = (m.member.name || '').split(' ')[0];
+        const when = m.starts_on > todayIndia() ? `starts on ${formatDate(m.starts_on)} and runs` : 'is active';
+        const text = `Namaste ${first}, this is ${site.name}. Thank you for your payment. Your ${m.plan} membership ${when} until ${formatDate(m.ends_on)}. See you in class!`;
+        window.open(`https://wa.me/${m.member.phone}?text=${encodeURIComponent(text.replace(/\s+,/g, ','))}`, '_blank', 'noopener');
+      }));
     }
 
     function render(id: string, rows: Membership[], withReminder: boolean) {
@@ -314,54 +376,152 @@ import { isConfigured } from '../lib/supabase';
         .select('id, received_at, error, payload')
         .eq('needs_attention', true)
         .order('received_at', { ascending: false })
-        .limit(20);
+        .limit(50);
       const el = $('list-events');
-      if (!data?.length) { el.innerHTML = '<p class="text-sm text-ink-soft">Nothing to sort out.</p>'; return; }
-      el.innerHTML = `<ul class="divide-y divide-ink/10 rounded-lg border border-ink/15 text-sm">${data.map((e: any) => {
+      // One line per payment, even if both the browser and Razorpay reported it.
+      const byPayment = new Map<string, any>();
+      for (const e of data ?? []) { const pid = paymentIdOf(e) || `row-${e.id}`; if (!byPayment.has(pid)) byPayment.set(pid, e); }
+      const rows = [...byPayment.entries()];
+      if (!rows.length) { el.innerHTML = '<p class="text-sm text-ink-soft">Nothing to sort out.</p>'; return; }
+      const ids = rows.map(([pid]) => pid).filter((p) => !p.startsWith('row-'));
+      const { data: have } = ids.length
+        ? await supabase!.from('memberships').select('razorpay_payment_id').in('razorpay_payment_id', ids)
+        : { data: [] };
+      const recorded = new Set((have ?? []).map((h: any) => h.razorpay_payment_id));
+      el.innerHTML = `<ul class="divide-y divide-ink/10 rounded-lg border border-ink/15 text-sm">${rows.map(([pid, e]) => {
         const p = e.payload?.payload?.payment?.entity ?? {};
-        return `<li class="px-4 py-3">
-          <span class="font-medium">${inr(Number(p.amount) || 0)}</span> from ${escape(String(p.contact ?? '?'))}${p.email ? ' · ' + escape(String(p.email)) : ''}
-          <span class="block text-ink-soft">${new Date(e.received_at).toLocaleString('en-IN')} · ${escape(e.error ?? '')}</span>
-          <span class="block text-xs text-ink-soft">Razorpay ID ${escape(String(p.id ?? ''))}</span>
+        const done = recorded.has(pid);
+        return `<li class="grid gap-3 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div>
+            <span class="font-medium">${inr(Number(p.amount) || 0)}</span> from ${escape(String(p.contact ?? '?'))}${p.email ? ' · ' + escape(String(p.email)) : ''}
+            ${done ? '<span class="ml-2 rounded bg-sage-soft px-2 py-0.5 text-xs">already recorded</span>' : ''}
+            <span class="block text-ink-soft">${new Date(e.received_at).toLocaleString('en-IN')} · ${escape(e.error ?? '')}</span>
+            <span class="block text-xs text-ink-soft">Razorpay ID ${escape(pid)}</span>
+          </div>
+          <div class="flex gap-2 sm:justify-end">
+            ${done ? '' : `<button data-add-event="${escape(pid)}" class="btn-primary !px-4 !py-2 text-xs">Add this payment</button>`}
+            <button data-done-event="${escape(pid)}" class="btn-ghost !px-4 !py-2 text-xs">Done</button>
+          </div>
         </li>`;
       }).join('')}</ul>`;
+      el.querySelectorAll<HTMLButtonElement>('[data-add-event]').forEach((b) => b.addEventListener('click', () => {
+        const e = byPayment.get(b.dataset.addEvent!); const p = e?.payload?.payload?.payment?.entity ?? {};
+        prefillFromPayment(p);
+      }));
+      el.querySelectorAll<HTMLButtonElement>('[data-done-event]').forEach((b) => b.addEventListener('click', async () => {
+        b.disabled = true;
+        const error = await clearAttention(b.dataset.doneEvent!);
+        if (error) { window.alert('Could not update: ' + error); b.disabled = false; return; }
+        await loadEvents();
+      }));
+    }
+
+    // Every row about this payment, whichever path reported it.
+    async function clearAttention(pid: string): Promise<string | null> {
+      const q = supabase!.from('webhook_events').update({ needs_attention: false }).eq('needs_attention', true);
+      const { error } = pid.startsWith('row-')
+        ? await q.eq('id', Number(pid.slice(4)))
+        : await q.eq('payload->payload->payment->entity->>id', pid);
+      return error?.message ?? null;
     }
 
     // ---- Add payment --------------------------------------------------------------
     const addForm = $('add-form') as HTMLFormElement;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-    ($('add-start') as HTMLInputElement).value = today;
+    const startEl = $('add-start') as HTMLInputElement, hintEl = $('add-start-hint'), amountEl = $('add-amount') as HTMLInputElement;
+    const planSelect = $('add-plan') as HTMLSelectElement, sourceSelect = $('add-source') as HTMLSelectElement, saveBtn = $('add-save') as HTMLButtonElement;
+    const planPriceOf = () => Number(planSelect.selectedOptions[0].dataset.price);
+    let dateTouched = false, amountTouched = false;
+    function resetAdd() {
+      addForm.reset(); dateTouched = false; amountTouched = false;
+      startEl.value = todayIndia(); amountEl.value = String(planPriceOf()); hintEl.hidden = true;
+      ($('add-payment-id') as HTMLInputElement).value = ''; ($('add-order-id') as HTMLInputElement).value = '';
+    }
+    resetAdd();
+    startEl.addEventListener('input', () => { dateTouched = true; hintEl.hidden = true; });
+    amountEl.addEventListener('input', () => { amountTouched = true; });
+    planSelect.addEventListener('change', () => { if (!amountTouched) amountEl.value = String(planPriceOf()); });
     $('show-add').addEventListener('click', () => { addForm.hidden = false; $('add-name').focus(); });
-    $('cancel-add').addEventListener('click', () => { addForm.hidden = true; addForm.reset(); ($('add-start') as HTMLInputElement).value = today; });
+    $('cancel-add').addEventListener('click', () => { addForm.hidden = true; resetAdd(); });
+
+    // A member who is still active keeps every paid day: the new plan starts
+    // the day after the old one ends. Suggested, never forced, so a late entry
+    // can still be backdated.
+    async function suggestStart(memberId: number) {
+      if (dateTouched) return;
+      const { data } = await supabase!.from('memberships').select('ends_on').eq('member_id', memberId).order('ends_on', { ascending: false }).limit(1).maybeSingle();
+      if (!data?.ends_on) return;
+      const next = addDays(data.ends_on, 1);
+      if (next > startEl.value) {
+        startEl.value = next;
+        hintEl.textContent = `Their current membership ends ${formatDate(data.ends_on)}, so this one starts ${formatDate(next)}. Change the date if that is wrong.`;
+        hintEl.hidden = false;
+      }
+    }
+    $('add-phone').addEventListener('blur', async () => {
+      const phone = normalisePhone(($('add-phone') as HTMLInputElement).value);
+      if (!PHONE_OK.test(phone)) return;
+      const { data } = await supabase!.from('members').select('id').eq('phone', phone).maybeSingle();
+      if (data) await suggestStart(data.id);
+    });
+
+    // From the attention list: a Razorpay payment the system could not place.
+    function prefillFromPayment(p: any) {
+      resetAdd();
+      ($('add-phone') as HTMLInputElement).value = String(p.contact ?? '');
+      ($('add-email') as HTMLInputElement).value = String(p.email ?? '');
+      const plan = String(p.notes?.plan ?? '');
+      if ([...planSelect.options].some((o) => o.value === plan)) planSelect.value = plan;
+      amountEl.value = String(Math.round((Number(p.amount) || 0) / 100)); amountTouched = true;
+      sourceSelect.value = 'razorpay';
+      ($('add-payment-id') as HTMLInputElement).value = String(p.id ?? '');
+      ($('add-order-id') as HTMLInputElement).value = String(p.order_id ?? '');
+      if (p.created_at) startEl.value = new Date(Number(p.created_at) * 1000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      addForm.hidden = false; addForm.scrollIntoView({ behavior: 'smooth' }); $('add-name').focus();
+    }
 
     addForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const err = $('add-error'); err.hidden = true;
+      const show = (msg: string) => { err.textContent = msg; err.hidden = false; saveBtn.disabled = false; };
+      saveBtn.disabled = true;
       const f = new FormData(addForm);
-      const planSelect = $('add-plan') as HTMLSelectElement;
-      const price = Number(planSelect.selectedOptions[0].dataset.price);
-      const phone = String(f.get('phone')).replace(/\D/g, '');
-      const normPhone = phone.length === 10 ? '91' + phone : phone;
+      const name = String(f.get('name')).trim();
+      const phone = normalisePhone(String(f.get('phone')));
       const email = String(f.get('email') || '').trim().toLowerCase() || null;
+      const amount = Math.round(Number(f.get('amount')));
+      const paymentId = String(f.get('razorpay_payment_id') || '') || null;
+      const source = String(f.get('source'));
+      if (!PHONE_OK.test(phone)) return show('Enter a 10-digit mobile number (with country code if not Indian).');
+      if (!Number.isFinite(amount) || amount < 0) return show('Enter the amount received, in rupees.');
+      if (source === 'razorpay' && !paymentId) return show('Razorpay payments are added from the attention list, so the payment ID is kept.');
 
       // Find or create the member by phone.
-      let { data: member } = await supabase!.from('members').select('id').eq('phone', normPhone).maybeSingle();
-      if (!member) {
-        const { data, error } = await supabase!.from('members').insert({ name: String(f.get('name')), phone: normPhone, email }).select('id').single();
-        if (error) { err.textContent = error.message; err.hidden = false; return; }
-        member = data;
+      const { data: found, error: findError } = await supabase!.from('members').select('id').eq('phone', phone).maybeSingle();
+      if (findError) return show(findError.message);
+      let memberId: number;
+      if (!found) {
+        const { data, error } = await supabase!.from('members').insert({ name, phone, email }).select('id').single();
+        if (error) return show(error.code === '23505' ? 'That email already belongs to another member.' : error.message);
+        memberId = data.id;
       } else {
-        await supabase!.from('members').update({ name: String(f.get('name')), ...(email ? { email } : {}) }).eq('id', member.id);
+        memberId = found.id;
+        const { error } = await supabase!.from('members').update({ name, ...(email ? { email } : {}) }).eq('id', memberId);
+        if (error) return show(error.code === '23505' ? 'That email already belongs to another member. The payment was not saved.' : error.message);
+        await suggestStart(memberId);
       }
       const { error } = await supabase!.from('memberships').insert({
-        member_id: member!.id,
+        member_id: memberId,
         plan: String(f.get('plan')),
-        amount_paise: price * 100,
-        starts_on: String(f.get('starts_on')),
-        source: String(f.get('source')),
+        amount_paise: amount * 100,
+        starts_on: startEl.value,
+        source,
+        razorpay_payment_id: paymentId,
+        razorpay_order_id: String(f.get('razorpay_order_id') || '') || null,
       });
-      if (error) { err.textContent = error.message; err.hidden = false; return; }
-      addForm.hidden = true; addForm.reset(); ($('add-start') as HTMLInputElement).value = today;
+      if (error) return show(error.code === '23505' ? 'This payment is already saved.' : error.message);
+      if (paymentId) await clearAttention(paymentId);
+      saveBtn.disabled = false;
+      addForm.hidden = true; resetAdd();
       await load();
     });
 

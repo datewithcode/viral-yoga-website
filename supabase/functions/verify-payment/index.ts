@@ -4,7 +4,7 @@
 
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
-import { PaymentRejected, hmacSha256Hex, json, razorpayApi, recordPayment, timingSafeEqual } from "../_shared/payments.ts";
+import { PaymentRejected, alreadyListedForAttention, hmacSha256Hex, json, razorpayApi, recordPayment, timingSafeEqual } from "../_shared/payments.ts";
 
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
@@ -56,6 +56,12 @@ export default {
       return json({ error: (e as Error).message }, 502);
     }
     if (payment.order_id !== orderId) return json({ error: "Payment does not belong to this order" }, 400);
+    // "failed" and "refunded" are final; only "created" and "authorized" can still
+    // turn into "captured" (by the bank, or by auto-capture) and the webhook will
+    // record them when they do.
+    if (payment.status === "failed" || payment.status === "refunded") {
+      return json({ ok: false, failed: true, status: payment.status });
+    }
     if (payment.status !== "captured") return json({ ok: false, pending: true, status: payment.status });
 
     try {
@@ -67,15 +73,22 @@ export default {
       if (rejected) {
         // Nothing will fix this on its own and the webhook will reject it the
         // same way, so put it in front of the owner now rather than losing it.
+        // Once only: the webhook may have got there first.
+        let listed = false;
+        try {
+          listed = await alreadyListedForAttention(db, paymentId);
+        } catch (readError) {
+          console.error((readError as Error).message);
+        }
         await db.from("webhook_events").insert({
           provider: "razorpay",
           event: "verify-payment.rejected",
           event_id: `verify:${paymentId}`,
           payload: { payload: { payment: { entity: payment } } },
           processed: false,
-          needs_attention: true,
+          needs_attention: !listed,
           attempts: 1,
-          error: message,
+          error: listed ? `already listed: ${message}` : message,
         });
       }
       // A rejected payment is for the studio to sort out; anything else is ours,
