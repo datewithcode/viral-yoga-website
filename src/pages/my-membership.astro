@@ -75,7 +75,7 @@ import SignIn from '../components/SignIn.astro';
 <script is:inline src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
-  import { supabase, inr, formatDate, daysUntil } from '../lib/supabase';
+  import { supabase, inr, formatDate, daysUntil, syncHeader, watchHeader } from '../lib/supabase';
   import { site } from '../data/site';
 
   const $ = (id: string) => document.getElementById(id)!;
@@ -98,6 +98,7 @@ import SignIn from '../components/SignIn.astro';
     // this page decides what happens next, which is: load their membership.
     document.addEventListener('vy:signedin', () => { void render(); });
 
+    watchHeader();
     $('signout').addEventListener('click', async () => {
       await supabase!.auth.signOut();
       try { localStorage.removeItem('vy-member'); localStorage.removeItem('vy-member-name'); } catch {}
@@ -128,12 +129,8 @@ import SignIn from '../components/SignIn.astro';
 
       // On the page you land on straight after clicking the emailed link, the
       // header script already ran, before this browser had a session at all, so
-      // it still says "Sign in". Put it right now rather than on the next click.
-      const firstName = (member?.name || '').trim().split(' ')[0];
-      document.querySelectorAll<HTMLAnchorElement>('[data-signin]').forEach((a) => {
-        a.textContent = firstName ? `Hi, ${firstName}` : 'Your membership';
-        a.title = 'Your membership';
-      });
+      // it still says "Sign in". Now that the name is cached, put it right.
+      syncHeader(session);
       if (member) {
         const nameEl = $('buy-name') as HTMLInputElement, phoneEl = $('buy-phone') as HTMLInputElement;
         if (!nameEl.value) nameEl.value = member.name ?? '';
