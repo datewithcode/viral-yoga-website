@@ -96,6 +96,27 @@ Two faults were found and fixed during this testing, both mine: the menu on phon
 - So: include email addresses in the spreadsheet wherever you have them.
 - Phone number is the identity in the import. Two rows with the same phone are treated as the same person, so clean the sheet for wrong or shared numbers first.
 
+**How a member record gets created.** The header greets someone by name, and their plan shows, only once a record with their name and email exists. There are three ways one gets there. Two work today.
+
+| How the record is created | Available |
+|---|---|
+| The instructor adds a cash or UPI payment in admin, with the member's email | Today |
+| The instructor imports the member spreadsheet, with emails | Today |
+| The member buys online and types their own name and email | After Razorpay |
+
+**Why sign-in asks only for an email, not a name.** Decided on 10 September after it came up three times. If the instructor asks, this is the reasoning.
+
+- Signing in only proves "this email is mine". The name is not needed for that. It is used for the greeting and the admin lists, and both come from the studio's own records.
+- The studio already knows the name, better than a member would type it on a phone. Asking again means either ignoring what they typed, or overwriting "Hansaben Patel" with "hansa".
+- One box is deliberate. Members include people in their sixties and seventies. Every extra box is somewhere to get stuck and a reason to phone the instructor instead.
+- Most people signing in are existing members checking their days. Asking someone who has come for three years for their name is odd.
+- Asking only newcomers would require the form to know which emails are already registered, and that would let anyone learn who is a member by typing addresses. The same leak was closed on phone numbers.
+- The name is captured at the first point it is actually needed: on the online payment form, or by the instructor at the desk.
+
+The one line to say if asked: **"Sign-in only checks it is your email. We already have your name from the studio."**
+
+If this ever changes, the safe version is a small "tell us who you are" box shown *after* sign-in, only to people the studio does not already know. It avoids every problem above. Written down as an option, not built.
+
 ## 4. What is not done
 
 - No Razorpay account, no email provider, no domain yet. Online payment is switched off on the site until Razorpay is connected.

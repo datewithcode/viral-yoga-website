@@ -206,6 +206,16 @@ Three things follow from this design:
 - **The link is device-bound.** Ask on the phone, open on the phone. Step 3 adds a code you can type anywhere.
 - **The email is the join.** A member record with no email shows "no membership found" until the instructor adds one with the Edit button. Adding it later works without a second sign-in.
 
+How a member record gets created, so that a name and a plan can show:
+
+| How the record is created | Available |
+|---|---|
+| The instructor adds a cash or UPI payment in admin, with the member's email | Today |
+| The instructor imports the member spreadsheet, with emails | Today |
+| The member buys online and types their own name and email | After Razorpay |
+
+Sign-in asks for an email and nothing else, by decision. Signing in proves the email is yours; the name comes from the studio's records, which are more reliable than a hurried typist, and asking only newcomers would leak who is a member. The full reasoning is in `docs/STATUS.md` section 3.
+
 ## 7. Flow: buying online (built, switched off until Razorpay exists)
 
 ```mermaid
