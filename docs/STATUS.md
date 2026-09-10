@@ -50,7 +50,7 @@ All names, phone numbers, addresses, timetable entries, testimonials, achievemen
 5. **Live site**: send four contact-form messages with the same phone number. The fourth is refused with "Too many messages from this number".
 6. **For the reviewer**: `docs/security-review-2026-09-08.md` lists each finding, the fix, and the test that proves it. A repeat review is planned before live Razorpay keys.
 
-**Still to do on GitHub (owner, 1 minute):** Settings > Rules > Rulesets > protect-main > Require status checks: add `functions-typecheck` and `functions-integration`. Until then only the website build is required before a merge to main.
+**Done, 10 September:** protect-main now requires all three checks (`check-and-build`, `functions-typecheck`, `functions-integration`) before a merge to main, not just the website build.
 
 ## 2c. Confirmed working on the live site, 9 September
 
