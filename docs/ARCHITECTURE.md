@@ -270,8 +270,7 @@ flowchart LR
   M2 --> CF["Cloudflare builds and publishes<br/>viral-yoga-website.supabase-root.workers.dev"]
 ```
 
-- Nothing is committed to `main` directly. It is protected.
-- **Known gap:** the protection currently requires only the first check. The owner needs to add the other two under Settings → Rules → protect-main.
+- Nothing is committed to `main` directly. It is protected, and all three checks are required before a merge, not just the first.
 - Database changes are SQL files in `supabase/migrations/`. They were applied to the live project with the Supabase tools; the functions were deployed the same way. There is no automatic backend deploy.
 
 ## 9. What is switched off, and the one switch for each
