@@ -1,4 +1,4 @@
-# How the Viral Yoga website fits together
+# How the Viral Yoga & Nature Cure website fits together
 
 Last updated: 9 September 2026. Every name in this document is a real file, table or service in this repository. If something here disagrees with the code, the code is right and this page needs fixing.
 

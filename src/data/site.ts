@@ -54,13 +54,13 @@ export type Plan = {
 
 export const site = {
   // --- Identity -------------------------------------------------------------
-  name: 'Viral Yoga',
+  name: 'Viral Yoga & Nature Cure',
   shortName: 'Viral Yoga',
   tagline: 'Daily yoga classes in Anjar and Adipur, Kutch.',
   // Optional second line in the hero, in Gujarati. Leave '' to hide.
   taglineGujarati: 'શ્વાસ લો. સ્થિર થાઓ.',
   description:
-    'Viral Yoga runs morning and evening yoga classes for beginners and regular practitioners at two studios in Anjar and Adipur, Kutch, Gujarat.',
+    'Viral Yoga & Nature Cure runs morning and evening yoga classes for beginners and regular practitioners at two studios in Anjar and Adipur, Kutch, Gujarat.',
   // Used for canonical URLs and social previews. Update after you deploy.
   url: 'https://viral-yoga-website.supabase-root.workers.dev',
   foundedYear: 2016,
@@ -247,7 +247,7 @@ export const site = {
   // Razorpay's compliance review checks that these exist and match the business.
   // CONFIRM every line of /privacy, /terms and /refunds before submitting KYC.
   legal: {
-    entityName: 'Viral Yoga',   // the name the business is registered under
+    entityName: 'Viral Yoga & Nature Cure',   // the name the business is registered under
     updated: '8 September 2026',
     // Days after purchase in which a refund can be asked for. Your policy, your call.
     refundWindowDays: 7,
@@ -338,7 +338,7 @@ export const site = {
     heroPrimaryButton: 'Book a free trial',
     aboutHeading: 'A neighbourhood studio, not a gym',
     aboutParagraphs: [
-      'Viral Yoga started in 2016 with one room in Anjar and eight students. Today we run classes at two studios, in Anjar and Adipur, for people of every age and every level of fitness.',
+      'Viral Yoga & Nature Cure started in 2016 with one room in Anjar and eight students. Today we run classes at two studios, in Anjar and Adipur, for people of every age and every level of fitness.',
       'We teach classical Hatha yoga the way it is meant to be taught: slowly, with attention to your body, and with a teacher who walks the room and corrects you. Batches stay small so nobody is ignored.',
       'Classes are in Gujarati, Hindi and English, whatever the room needs.',
     ],
@@ -413,7 +413,7 @@ export const site = {
     imageAlt: 'Portrait of the head teacher at the Anjar studio',
     bio: [
       'Viralbhai has taught yoga in Kutch since 2016, first in a single room in Anjar and now at both studios. He teaches classical Hatha yoga, pranayama, and therapeutic sessions for students recovering from injury.',
-      'He trains every teacher at Viral Yoga himself, and still takes the 6 am batch most mornings.',
+      'He trains every teacher at Viral Yoga & Nature Cure himself, and still takes the 6 am batch most mornings.',
     ],
     // Newest first. Leave `year` empty for anything without a date, and `detail`
     // empty when the title says enough on its own.
@@ -424,7 +424,7 @@ export const site = {
       { year: '2021', title: 'RYT 500, Yoga Alliance', detail: '' },
       { year: '2019', title: 'Gold medal, Gujarat State Yoga Championship', detail: 'Traditional yoga, open category.' },
       { year: '2018', title: 'Diploma in Yoga Therapy', detail: 'One-year course, with a focus on back and knee rehabilitation.' },
-      { year: '2016', title: 'Founded Viral Yoga in Anjar', detail: 'Eight students in the first batch.' },
+      { year: '2016', title: 'Founded Viral Yoga & Nature Cure in Anjar', detail: 'Eight students in the first batch.' },
       { year: '', title: 'Taught more than 2,000 students across both studios', detail: '' },
     ] as Achievement[],
   },

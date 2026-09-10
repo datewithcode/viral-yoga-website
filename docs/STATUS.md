@@ -1,4 +1,4 @@
-# Viral Yoga website: status and next steps
+# Viral Yoga & Nature Cure website: status and next steps
 
 Last updated: 8 September 2026, after the security review fixes
 
@@ -7,7 +7,7 @@ Code: https://github.com/datewithcode/viral-yoga-website
 
 ## 1. What this is
 
-A website for Viral Yoga's two studios in Anjar and Adipur. Students see classes, timetable and prices, buy a membership online, and check their own days remaining. The instructor sees who paid, who is about to expire, and who has asked about a trial class, and replies on WhatsApp with one tap.
+A website for Viral Yoga & Nature Cure's two studios in Anjar and Adipur. Students see classes, timetable and prices, buy a membership online, and check their own days remaining. The instructor sees who paid, who is about to expire, and who has asked about a trial class, and replies on WhatsApp with one tap.
 
 ## 2. Where we stand today
 
@@ -41,7 +41,7 @@ Everything is built and tested. The public website is live with placeholder cont
 | Deployment: Supabase project | Yes | Yes | Yes, free tier for now |
 | Email provider (Resend) | Not started | No | No |
 
-All names, phone numbers, addresses, timetable entries, testimonials, achievements and photos on the site are placeholders, including the teacher's name and achievement list. The studio name is already set to Viral Yoga.
+All names, phone numbers, addresses, timetable entries, testimonials, achievements and photos on the site are placeholders, including the teacher's name and achievement list. The studio name is already set to Viral Yoga & Nature Cure.
 
 ## 2b. How to check the security fixes yourself
 
@@ -150,7 +150,7 @@ Everything below is **built and tested**. It is hidden only because the account 
 | **Buy panel** on the membership page: plan chooser, Pay button, Razorpay checkout | Razorpay account |
 | Tapping a plan carries it across to the membership page, already chosen | Razorpay account |
 | Header button reads **Sign in / Register** instead of Sign in | Razorpay account |
-| Page heading reads **Join Viral Yoga** instead of Member sign-in | Razorpay account |
+| Page heading reads **Join Viral Yoga & Nature Cure** instead of Member sign-in | Razorpay account |
 | Intro line reads **New here? Sign in with your email to buy a membership** | Razorpay account |
 | Expired card says **Renew below** instead of pointing at UPI and WhatsApp | Razorpay account |
 | UPI buttons step down to a small "pay by UPI instead" link | Razorpay account |
@@ -293,7 +293,7 @@ If the online fee is passed to the student, they pay: 1 month ₹2,047, 3 months
 - Reminders: tap-to-send on WhatsApp now, automatic later if wanted.
 - Both payment paths: Razorpay online and direct UPI.
 - Hosting: Netlify.
-- Studio name: Viral Yoga.
+- Studio name: Viral Yoga & Nature Cure.
 
 ## 9. Known limits to remember
 
