@@ -44,6 +44,31 @@ export function indiaDate(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 }
 
+export function addDays(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * The day a new membership should start: the given day, or the day after the
+ * member's latest membership ends, whichever is later. Renewing early must
+ * never throw away days that were already paid for.
+ */
+// deno-lint-ignore no-explicit-any
+export async function nextStartDate(db: any, memberId: number, notBefore: string): Promise<string> {
+  const { data, error } = await db
+    .from("memberships")
+    .select("ends_on")
+    .eq("member_id", memberId)
+    .order("ends_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`Could not read memberships: ${error.message}`);
+  const latest = data?.ends_on ? addDays(String(data.ends_on), 1) : null;
+  return latest && latest > notBefore ? latest : notBefore;
+}
+
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -83,7 +108,24 @@ export class PaymentRejected extends Error {
   }
 }
 
-export type RecordResult = { member_id: number; plan: string; duplicate: boolean; note?: string };
+/**
+ * True when a "needs attention" row for this payment already exists. The
+ * browser and the webhook can both reject the same payment; the owner should
+ * see it once, not twice, or it gets added by hand twice.
+ */
+// deno-lint-ignore no-explicit-any
+export async function alreadyListedForAttention(db: any, paymentId: string): Promise<boolean> {
+  const { data, error } = await db
+    .from("webhook_events")
+    .select("id")
+    .eq("needs_attention", true)
+    .eq("payload->payload->payment->entity->>id", paymentId)
+    .limit(1);
+  if (error) throw new Error(`Could not read attention list: ${error.message}`);
+  return Boolean(data?.length);
+}
+
+export type RecordResult = { member_id: number; plan: string; duplicate: boolean; starts_on: string };
 
 /**
  * Turn a captured Razorpay payment entity into a membership row.
@@ -102,6 +144,7 @@ export async function recordPayment(db: any, p: any): Promise<RecordResult> {
   const amountPaise = Number(p.amount);
   const rupees = Math.round(amountPaise / 100);
   if (!p.order_id) throw new PaymentRejected(`Payment ₹${rupees} has no order. Add it by hand in admin if it is real.`);
+  if (p.currency && p.currency !== "INR") throw new PaymentRejected(`Payment ${p.id} is in ${p.currency}, not INR`);
 
   const { data: order, error: orderError } = await db
     .from("payment_orders")
@@ -134,32 +177,40 @@ export async function recordPayment(db: any, p: any): Promise<RecordResult> {
 
   const { data: member, error: memberError } = await db
     .from("members")
-    .select("id, name, email")
+    .select("id")
     .eq("id", order.member_id)
     .maybeSingle();
   if (memberError) throw new Error(`Could not read member: ${memberError.message}`);
   if (!member) throw new PaymentRejected(`Order ${p.order_id} points at a missing member`);
 
-  // Fill in a blank name from the payment, nothing else.
-  let note: string | undefined;
-  const notes = p.notes && !Array.isArray(p.notes) && typeof p.notes === "object" ? p.notes : {};
-  const name = String(notes.name ?? notes.Name ?? "").trim();
-  if (!member.name && name) {
-    const { error } = await db.from("members").update({ name }).eq("id", member.id);
-    if (error) note = `Could not update member name: ${error.message}`;
-  }
+  const paidOn = indiaDate(Number(p.created_at) || Math.floor(Date.now() / 1000));
+  let startsOn = await nextStartDate(db, member.id, paidOn);
 
   const { error: mError } = await db.from("memberships").insert({
     member_id: member.id,
     plan: order.plan,
     amount_paise: amountPaise,
-    starts_on: indiaDate(Number(p.created_at) || Math.floor(Date.now() / 1000)),
+    starts_on: startsOn,
     source: "razorpay",
     razorpay_payment_id: p.id,
     razorpay_order_id: p.order_id,
   });
-  const duplicate = mError?.code === "23505";
-  if (mError && !duplicate) throw new Error(`Could not create membership: ${mError.message}`);
+  let duplicate = false;
+  if (mError?.code === "23505") {
+    // Only a clash on the payment id means "already recorded". Any other unique
+    // clash is not this payment's row, so it must be retried, never swallowed.
+    const { data: mine, error: mineError } = await db
+      .from("memberships")
+      .select("starts_on")
+      .eq("razorpay_payment_id", p.id)
+      .maybeSingle();
+    if (mineError) throw new Error(`Could not read existing membership: ${mineError.message}`);
+    if (!mine) throw new Error(`Could not create membership: ${mError.message}`);
+    duplicate = true;
+    startsOn = String(mine.starts_on);
+  } else if (mError) {
+    throw new Error(`Could not create membership: ${mError.message}`);
+  }
 
   // Always run, never only on the first pass. If a first delivery inserted the
   // membership and then failed here, the retry arrives with duplicate = true and
@@ -167,5 +218,5 @@ export async function recordPayment(db: any, p: any): Promise<RecordResult> {
   const { error: statusError } = await db.from("payment_orders").update({ status: "paid" }).eq("id", order.id);
   if (statusError) throw new Error(`Could not mark order paid: ${statusError.message}`);
 
-  return { member_id: member.id, plan: order.plan, duplicate, note };
+  return { member_id: member.id, plan: order.plan, duplicate, starts_on: startsOn };
 }

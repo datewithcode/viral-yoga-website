@@ -94,6 +94,7 @@ echo "== member linking (F01)"
 R5=$(fn create-order "$C" '{"plan":"6 months","name":"Chitra M","phone":"9000011111"}')
 expect "walk-in with matching email links to her own row" "[200]" "$R5"
 expect_eq "chitra's row now carries her user id" "1" "$(sql "select count(*) from public.members where phone='919000011111' and email='chitra@example.com' and user_id is not null")"
+expect_eq "the studio's name for her is kept, not the one she typed" "Chitra Walk-in" "$(sql "select name from public.members where phone='919000011111'")"
 expect "another account cannot claim a walk-in's phone" "[409]" "$(fn create-order "$D" '{"plan":"1 month","name":"Dev","phone":"9000022222"}')"
 expect_eq "phone-only walk-in stays unlinked" "1" "$(sql "select count(*) from public.members where phone='919000022222' and user_id is null")"
 expect "dev cannot use asha's phone" "[409]" "$(fn create-order "$D" '{"plan":"1 month","name":"Dev","phone":"9876500001"}')"
@@ -129,6 +130,12 @@ PD2=$(mockpay "{\"order_id\":\"$ORDD\"}"); PIDD2=$(echo "$PD2" | jget id)
 expect "a second, different payment on that order is refused" "[422]" "$(verify "$G" "$ORDD" "$PIDD2")"
 expect_eq "and no second membership appears" "1" "$(sql "select count(*) from public.memberships where razorpay_order_id='$ORDD'")"
 expect_eq "the refused payment is put in front of the owner" "1" "$(sql "select count(*) from public.webhook_events where needs_attention and payload::text like '%$PIDD2%'")"
+expect "Razorpay's own webhook for it is also refused" '"ok":false' "$(webhook evt_dup_after_verify "$PD2")"
+expect_eq "but the owner still sees that payment once, not twice" "1" "$(sql "select count(*) from public.webhook_events where needs_attention and payload::text like '%$PIDD2%'")"
+PD3=$(mockpay "{\"order_id\":\"$ORDD\"}"); PIDD3=$(echo "$PD3" | jget id)
+expect "a third payment, webhook first: refused" '"ok":false' "$(webhook evt_dup_before_verify "$PD3")"
+expect "then the browser: refused" "[422]" "$(verify "$G" "$ORDD" "$PIDD3")"
+expect_eq "webhook first, browser second: still listed once" "1" "$(sql "select count(*) from public.webhook_events where needs_attention and payload::text like '%$PIDD3%'")"
 
 echo "== payments: a retry finishes a half-done first attempt (review round 2)"
 RE=$(fn create-order "$F" '{"plan":"3 months","name":"Farah","phone":"9876500006"}')
@@ -165,8 +172,57 @@ expect_eq "parallel burst: exactly three stored" "3" "$(sql "select count(*) fro
 expect "bad email rejected" "[400]" "$(fn submit-enquiry "" '{"name":"T","phone":"9111100008","email":"nope"}')"
 expect "student cannot call submit_enquiry directly" "42501" "$(curl -s -X POST "$API/rest/v1/rpc/submit_enquiry" -H "apikey: $PK" -H "Authorization: Bearer $A" -H "content-type: application/json" --data '{"p_name":"x","p_phone":"919111100009","p_email":null,"p_studio":"","p_interest":"","p_message":"","p_ip":null}')"
 
+echo "== renewals keep every paid day (review round 3)"
+expect_eq "a first purchase starts the day it is paid" "true" "$(sql "select (starts_on = (now() at time zone 'Asia/Kolkata')::date)::text from public.memberships where razorpay_payment_id='$PIDD1'")"
+NEXT=$(sql "select (max(m.ends_on) + 1)::text from public.memberships m join public.members x on x.id=m.member_id where x.email='asha@example.com'")
+RR=$(fn create-order "$A" '{"plan":"1 month","name":"Asha Rao","phone":"9876500001"}'); ORDR=$(echo "$RR" | jget order_id)
+PR=$(mockpay "{\"order_id\":\"$ORDR\"}"); PIDR=$(echo "$PR" | jget id)
+expect "asha renews while her plan is still running" '"ok":true' "$(verify "$A" "$ORDR" "$PIDR")"
+expect_eq "the new plan starts the day after the old one ends" "$NEXT" "$(sql "select starts_on::text from public.memberships where razorpay_payment_id='$PIDR'")"
+expect "the browser is told the start date" "\"starts_on\":\"$NEXT\"" "$(verify "$A" "$ORDR" "$PIDR")"
+
+echo "== webhook arriving before the browser (review round 3)"
+RW=$(fn create-order "$B" '{"plan":"1 year","name":"Bala","phone":"9876500002"}'); ORDW=$(echo "$RW" | jget order_id)
+PW=$(mockpay "{\"order_id\":\"$ORDW\"}"); PIDW=$(echo "$PW" | jget id)
+expect "webhook first: recorded" '"ok":true' "$(webhook evt_first "$PW")"
+expect "browser second: already done" '"duplicate":true' "$(verify "$B" "$ORDW" "$PIDW")"
+expect_eq "one membership" "1" "$(sql "select count(*) from public.memberships where razorpay_payment_id='$PIDW'")"
+
+echo "== giving up must not list a payment that is already recorded (review round 3)"
+RG=$(fn create-order "$F" '{"plan":"6 months","name":"Farah","phone":"9876500006"}'); ORDG=$(echo "$RG" | jget order_id)
+PG=$(mockpay "{\"order_id\":\"$ORDG\"}"); PIDG=$(echo "$PG" | jget id)
+sql "revoke update on public.payment_orders from service_role" >/dev/null
+for i in 1 2 3 4; do webhook evt_giveup "$PG" >/dev/null; done
+expect_eq "membership was created on the first try" "1" "$(sql "select count(*) from public.memberships where razorpay_payment_id='$PIDG'")"
+expect "fifth try: stops, and says it is recorded" '"recorded":true' "$(webhook evt_giveup "$PG")"
+expect_eq "not put in front of the owner" "true|false" "$(sql "select processed::text||'|'||needs_attention::text from public.webhook_events where event_id='evt_giveup'")"
+sql "grant update on public.payment_orders to service_role" >/dev/null
+
+echo "== payment states and currency (review round 3)"
+PX=$(mockpay "{\"order_id\":\"$ORD2\",\"status\":\"failed\"}"); PIDX=$(echo "$PX" | jget id)
+expect "a failed payment is final, not pending" '"failed":true' "$(verify "$B" "$ORD2" "$PIDX")"
+ORD6=$(echo "$R6" | jget order_id)
+PY=$(mockpay "{\"order_id\":\"$ORD6\",\"currency\":\"USD\"}"); PIDY=$(echo "$PY" | jget id)
+expect "a payment not in rupees is refused" "not INR" "$(verify "$D" "$ORD6" "$PIDY")"
+
+echo "== the desk form cannot save the same payment twice (review round 3)"
+WALKIN=$(sql "select id from public.members where phone='919000022222'")
+desk() { curl -s -w ' [%{http_code}]' -X POST "$API/rest/v1/memberships" -H "apikey: $PK" -H "Authorization: Bearer $O" -H "content-type: application/json" -H "prefer: return=minimal" --data "{\"member_id\":$WALKIN,\"plan\":\"1 month\",\"amount_paise\":180000,\"starts_on\":\"2026-09-10\",\"source\":\"cash\"}"; }
+expect "owner records a cash payment, with a discount" "[201]" "$(desk)"
+expect "the same payment a second time is refused" "memberships_desk_once_idx" "$(desk)"
+expect_eq "one row, at the discounted amount" "1|180000" "$(sql "select count(*)||'|'||max(amount_paise) from public.memberships where member_id=$WALKIN and starts_on='2026-09-10'")"
+
+echo "== the owner can clear the attention list (review round 3)"
+expect_eq "evt_2 is listed" "true" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_2'")"
+curl -s -X PATCH "$API/rest/v1/webhook_events?event_id=eq.evt_2" -H "apikey: $PK" -H "Authorization: Bearer $O" -H "content-type: application/json" --data '{"needs_attention":false}' >/dev/null
+expect_eq "owner marks it done" "false" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_2'")"
+curl -s -X PATCH "$API/rest/v1/webhook_events?event_id=eq.evt_3" -H "apikey: $PK" -H "Authorization: Bearer $A" -H "content-type: application/json" --data '{"needs_attention":false}' >/dev/null
+expect_eq "a student cannot" "true" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_3'")"
+expect "and the owner can change nothing but that one column" "permission denied" "$(curl -s -X PATCH "$API/rest/v1/webhook_events?event_id=eq.evt_3" -H "apikey: $PK" -H "Authorization: Bearer $O" -H "content-type: application/json" --data '{"processed":true}')"
+expect_eq "evt_3 is untouched" "false" "$(sql "select processed::text from public.webhook_events where event_id='evt_3'")"
+
 echo "== row level security"
-expect_eq "asha sees only her memberships" "1" "$(q "$A" "memberships?select=plan" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')"
+expect_eq "asha sees only her memberships" "2" "$(q "$A" "memberships?select=plan" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')"
 expect_eq "asha sees only her member row" "1" "$(q "$A" "members?select=id" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')"
 expect_eq "eve (never bought) sees no memberships" "0" "$(q "$E" "memberships?select=plan" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')"
 ANON=$(curl -s "$API/rest/v1/members?select=id" -H "apikey: $PK")

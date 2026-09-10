@@ -57,7 +57,7 @@ flowchart LR
 | Database | `supabase/migrations/*.sql` | The tables, their rules, and every change in order |
 | Server code | `supabase/functions/*/index.ts` | The four functions, plus `_shared/payments.ts` they all use |
 | Hosting config | `wrangler.toml`, `public/_headers`, `.node-version` | Cloudflare reads these. `netlify.toml` is left over and unused |
-| Tests | `tests/` | 70 backend cases, 8 build checks, and two browser scripts |
+| Tests | `tests/` | 96 backend cases, 9 build checks (incl. plan prices agreeing across files), and two browser scripts |
 | Automatic checks | `.github/workflows/ci.yml` | Three jobs on every change, described in section 8 |
 
 ## 3. Who can see what
@@ -149,6 +149,8 @@ Two rows are the source of truth for money:
 
 - `payment_orders` says which member and plan an online payment is **for**. It is created before anyone pays. A payment that does not match one of these rows is never recorded automatically.
 - `memberships.razorpay_payment_id` is unique, so the same payment can arrive twice, from the browser and from the webhook, and only one membership results.
+
+A desk payment (cash or UPI) is unique per member, plan and start date, so a double tap on the admin form cannot save it twice.
 
 `order_attempts` and `enquiries.ip` exist only for rate limiting. `webhook_events` is a log so a payment can never be lost even when matching fails.
 
@@ -251,6 +253,10 @@ sequenceDiagram
 ```
 
 `recordPayment` in `_shared/payments.ts` is the one place a membership is created from a payment. Both paths call it. It trusts only the `payment_orders` row, never the contact details on the payment, and refuses a second payment on an order already settled.
+
+The new membership starts on the day of payment, or the day after the member's latest membership ends, whichever is later, so renewing early never loses paid days. The same rule is suggested on the admin form.
+
+A payment that can never be recorded automatically (wrong amount, unknown order) is put in front of the owner once, whichever path saw it first; the admin page lets the owner add it against the right member, keeping the Razorpay payment id so it cannot be added twice, or mark it done.
 
 Webhook answers mean something: **200** for done or "a human must look" (`needs_attention`), **500** for "try again later". After five failed tries it stops asking and hands it to the owner, so a bug cannot loop for a day.
 

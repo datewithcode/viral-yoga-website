@@ -26,12 +26,14 @@ Everything is built and tested. The public website is live with placeholder cont
 | Membership page: register and buy a plan online | Yes | Yes, with a stand-in for Razorpay | Hidden until domain + Razorpay exist (step 3) |
 | Sign in first, then buy: online payments are tied to the student's account automatically | Yes | Yes | No |
 | Admin page: owner login, lists of active, due-for-reminder and lapsed members | Yes | Yes | Yes, owner login works |
-| Admin: add a UPI or cash payment by hand | Yes | Yes | Yes |
+| Admin: add a UPI or cash payment by hand, with the real amount received | Yes | Yes | Yes |
+| Admin: recent payments list with one-tap WhatsApp confirmation to the member | Yes | Yes | Yes |
+| Admin: attention list with "Add this payment" and "Done" | Yes | Yes | Yes |
 | Admin: one-tap WhatsApp renewal reminder, logged so you see who was reminded | Yes | Yes | Yes |
 | Admin: import your existing member list from a spreadsheet | Yes | Yes | Yes, not yet used |
 | Admin: enquiries from the contact form, with WhatsApp reply and Done | Yes | Yes | Yes |
 | Optional online fee passed to the student (currently off) | Yes | Yes | No |
-| Backend: database, security rules, four server functions | Yes | Yes, 51 automated cases run on every code change | Yes, Supabase project Viral-Yoga (Mumbai) |
+| Backend: database, security rules, four server functions | Yes | Yes, 96 automated cases run on every code change | Yes, Supabase project Viral-Yoga (Mumbai) |
 | Security review (external, 8 Sept): 2 high, 3 medium, 1 low findings | All fixed | Yes, each has a test | Yes |
 | Real Razorpay account | Not started | No | No |
 | Deployment: Cloudflare | Yes | Yes | Live at viral-yoga-website.supabase-root.workers.dev, auto-deploys from GitHub |
@@ -51,6 +53,19 @@ All names, phone numbers, addresses, timetable entries, testimonials, achievemen
 6. **For the reviewer**: `docs/security-review-2026-09-08.md` lists each finding, the fix, and the test that proves it. A repeat review is planned before live Razorpay keys.
 
 **Done, 10 September:** protect-main now requires all three checks (`check-and-build`, `functions-typecheck`, `functions-integration`) before a merge to main, not just the website build.
+
+## 2d. Payment review, 10 September: what changed
+
+A staff-level review of the whole payment path found the automatic online route sound (no way to lose a payment or record it twice) and six weaknesses in the parts a person operates by hand. All six are fixed, each with a test:
+
+1. **Renewing early no longer loses days.** A new plan starts the day after the current one ends, online and at the desk. The member's page says "Upcoming membership, starts on 1 Oct" until then, and the buy panel shows the start date before paying. The desk form suggests the right date and says why; it can still be changed for a late entry.
+2. **The attention list can be cleared, and shows each payment once.** "Add this payment" opens the form filled in from the Razorpay payment and keeps the payment ID, so the same payment can never be added twice. "Done" clears it. A payment already recorded is labelled so.
+3. **The desk form is safe against a double tap** (the database refuses the same member, plan and start date twice), refuses an email that belongs to someone else instead of silently dropping it, understands `09876…` and `+91…` phone numbers, and has an **amount box** so a discount is recorded as what was actually paid.
+4. **Prices cannot drift.** Plan names and prices are copied into five files by necessity; a check now fails the build if any two disagree.
+5. **"Payment cancelled, nothing was charged" is gone.** Closing the Razorpay window after approving a UPI request still charges, so the page now says so and watches for the membership to appear on its own.
+6. **Auto-capture is asked for on every order** and is a gate on the Razorpay-day list (section 5b). A failed or refunded payment is reported as final, not "pending".
+
+Also from that review: the member's page sends the owner's account to admin instead of showing everyone's rows; the admin page reads memberships in pages, so it keeps working past 1,000 rows; a payment in any currency but rupees is refused; the studio's name for a member is kept when they type a different one at checkout. Two things were noted and deliberately left: cancel/pause/refund (section 5a) and backups, which the Pro plan provides and which the owner will buy once the logic work is done.
 
 ## 2c. Confirmed working on the live site, 9 September
 
@@ -228,6 +243,8 @@ Four things cannot be settled until those accounts exist. They are written down 
 - [ ] **Test the 6-digit sign-in code with a real email.** It is written but has never run, because it needs the domain and Resend. Send yourself a code, sign in on a laptop with the email opened on a phone, and confirm it works. Only then set `signInEmailHasCode: true`.
 - [ ] **Decide about Razorpay payment links.** Only payments started from the website are recorded automatically now. A payment made through a Razorpay link sent on WhatsApp lands in the admin attention list to be added by hand. This was deliberate, for safety. If the studio wants to use payment links often, say so and it can be revisited.
 
+- [ ] **Auto-capture ON.** Razorpay dashboard > Settings > Payment Capture Settings: capture automatically. The site asks for it on every order too, but the dashboard setting is what counts. Proof: the first test-mode payment shows "captured" in the dashboard and a membership on the site within seconds. Without this every payment sits "authorised", the member sees "being confirmed by the bank", and Razorpay refunds it days later.
+- [ ] **Turn on Razorpay's payment receipt to the customer** (SMS/email, a dashboard switch). That, plus the WhatsApp confirmation button on the admin page, is how a member hears the payment went through.
 - [ ] **Confirm the policy pages before submitting Razorpay KYC.** Razorpay's compliance team checks that the website carries terms and conditions, a privacy policy, a refund and cancellation policy with clear timelines, and contact details with a physical address. All four exist. The privacy page is accurate as written; the terms and refund pages state studio policy and need the owner's word before they are submitted.
 
 Also worth doing at the same time: ask the reviewer who wrote `docs/security-review-2026-09-08.md` for a second pass, which is what they recommended before live keys.
@@ -284,7 +301,8 @@ If the online fee is passed to the student, they pay: 1 month ₹2,047, 3 months
 - **Until step 3, sign-in emails come from Supabase's built-in mailer:** only a few per hour, fixed wording, link only (no code). They do reach any address, so sign-in can be tested with a few real people, slowly.
 - Supabase allows 30 sign-in emails per hour by default. This must be raised in the dashboard before launch, or a busy launch day fails.
 - Free Supabase projects pause after 7 days without activity. Pro never pauses.
-- Imported memberships record today's plan price, not what was paid back then.
+- Imported memberships record today's plan price, not what was paid back then. Desk payments record the amount typed in, so a discount is kept as paid.
+- If the online fee is switched on, the recorded amount includes it (what the member paid), so admin shows "3 months · ₹5,118".
 - Students who pay by direct UPI are not linked to an account until the instructor adds their email. A phone number typed at checkout never links anyone; only the email does.
 - Only payments that start from "Buy online" on the site are recorded automatically. A payment through a Razorpay link outside the site goes to the admin attention list to be added by hand.
 - Contact form: 3 messages per phone number and 5 per connection every 10 minutes. Orders: at most 5 unpaid orders per member per hour.

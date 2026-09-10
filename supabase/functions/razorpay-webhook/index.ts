@@ -19,7 +19,7 @@
 
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
-import { PaymentRejected, hmacSha256Hex, json, recordPayment, timingSafeEqual } from "../_shared/payments.ts";
+import { PaymentRejected, alreadyListedForAttention, hmacSha256Hex, json, recordPayment, timingSafeEqual } from "../_shared/payments.ts";
 
 // Deliveries of one event we will keep asking Razorpay to retry. Past this we
 // give up, answer 200, and put it in front of the owner.
@@ -92,16 +92,37 @@ export default {
 
     try {
       const result = await recordPayment(db, evt?.payload?.payment?.entity);
-      return finish({ processed: true, needs_attention: false, error: result.note ?? null }, { ok: true, ...result });
+      return finish({ processed: true, needs_attention: false, error: null }, { ok: true, ...result });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       if (e instanceof PaymentRejected) {
         // Final. Nothing will fix this on its own, so show the owner and stop.
-        return finish({ processed: false, needs_attention: true, error: message }, { ok: false, error: message });
+        // Once only: verify-payment may already have put this payment in the list.
+        const pid = String(evt?.payload?.payment?.entity?.id ?? "");
+        let listed = false;
+        try {
+          listed = pid ? await alreadyListedForAttention(db, pid) : false;
+        } catch (readError) {
+          console.error((readError as Error).message);
+        }
+        return finish(
+          { processed: false, needs_attention: !listed, error: listed ? `already listed: ${message}` : message },
+          { ok: false, error: message },
+        );
       }
       if (attempts >= MAX_ATTEMPTS) {
         // Retrying is not working. Stop the loop and hand it over, rather than
-        // leaving it invisible until Razorpay gives up on its own.
+        // leaving it invisible until Razorpay gives up on its own. Unless the
+        // membership itself was created on an earlier try and only the
+        // bookkeeping after it keeps failing: that payment is recorded, and the
+        // owner must not see it as something to add by hand.
+        const pid = String(evt?.payload?.payment?.entity?.id ?? "");
+        const { data: recorded } = pid
+          ? await db.from("memberships").select("id").eq("razorpay_payment_id", pid).maybeSingle()
+          : { data: null };
+        if (recorded) {
+          return finish({ processed: true, needs_attention: false, error: `recorded; later step failed: ${message}` }, { ok: true, recorded: true });
+        }
         const giveUp = `gave up after ${attempts} attempts: ${message}`;
         return finish({ processed: false, needs_attention: true, error: giveUp }, { ok: false, error: giveUp });
       }
