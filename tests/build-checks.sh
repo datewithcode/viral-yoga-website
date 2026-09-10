@@ -48,6 +48,9 @@ expect_match "a real 404 page is built" "Page not found" dist/404.html
 expect_match "the address is not the retired host" "workers.dev" dist/index.html
 if grep -q "startling-beignet" dist/index.html; then bad "no links to the retired host" "found netlify address"; else ok "no links to the retired host"; fi
 
+# Plan names and prices are copied into several files; they must all agree.
+if node tests/prices-agree.mjs >/tmp/vy-prices.log 2>&1; then ok "plan names and prices agree everywhere"; else bad "plan names and prices agree everywhere" "$(grep -A1 FAIL /tmp/vy-prices.log | head -4)"; fi
+
 echo
 echo "passed $PASS, failed $FAIL"
 [ "$FAIL" = 0 ]

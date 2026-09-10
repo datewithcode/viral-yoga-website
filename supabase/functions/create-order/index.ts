@@ -120,17 +120,24 @@ export default {
         return fail(error);
       }
       member = data;
-    } else if (member.name !== name || member.phone !== phone) {
-      const { error } = await db.from("members").update({ name, phone }).eq("id", member.id).eq("user_id", userId);
-      if (error) {
-        if (error.code === "23505") return json({ error: `This mobile number belongs to another member. ${CONTACT_STUDIO}` }, 409);
-        return fail(error);
+    } else {
+      // The studio's record of the name wins over whatever was typed here; only
+      // a blank is filled in. The phone is theirs to change.
+      const patch: { name?: string; phone?: string } = {};
+      if (!member.name) patch.name = name;
+      if (member.phone !== phone) patch.phone = phone;
+      if (Object.keys(patch).length) {
+        const { error } = await db.from("members").update(patch).eq("id", member.id).eq("user_id", userId);
+        if (error) {
+          if (error.code === "23505") return json({ error: `This mobile number belongs to another member. ${CONTACT_STUDIO}` }, 409);
+          return fail(error);
+        }
+        member = { ...member, ...patch };
       }
-      member = { ...member, name, phone };
     }
 
     const { base, fee, total: amount } = onlineAmountPaise(rupees);
-    const prefill = { name, email: member.email ?? userEmail ?? "", contact: phone };
+    const prefill = { name: member.name || name, email: member.email ?? userEmail ?? "", contact: phone };
 
     // Reuse a recent unpaid order for the same plan instead of piling up rows.
     const reuseSince = new Date(Date.now() - REUSE_MINUTES * 60 * 1000).toISOString();
@@ -170,6 +177,9 @@ export default {
           currency: "INR",
           receipt: `m${member.id}-${Date.now()}`.slice(0, 40),
           notes: { plan, member_id: String(member.id) },
+          // Belt and braces: the dashboard's Payment Capture setting must be
+          // "automatic" too, or payments sit authorised and are refunded later.
+          payment_capture: 1,
         }),
       });
     } catch (e) {

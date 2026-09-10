@@ -19,7 +19,7 @@ createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/mock/pay') {
     const b = JSON.parse(await read(req)); const o = orders.get(b.order_id); if (!o) return send(404, { error: { description: 'no order' } });
     const id = `pay_MOCK${++n}${Math.random().toString(36).slice(2,8)}`; const amount = b.amount ?? o.amount;
-    const p = { id, entity: 'payment', amount, currency: 'INR', status: b.status ?? 'captured', order_id: o.id, method: 'upi', captured: (b.status ?? 'captured') === 'captured', email: b.email ?? null, contact: b.contact ?? null, notes: o.notes, vpa: 'x@upi', created_at: Math.floor(Date.now()/1000) };
+    const p = { id, entity: 'payment', amount, currency: b.currency ?? 'INR', status: b.status ?? 'captured', order_id: o.id, method: 'upi', captured: (b.status ?? 'captured') === 'captured', email: b.email ?? null, contact: b.contact ?? null, notes: o.notes, vpa: 'x@upi', created_at: Math.floor(Date.now()/1000) };
     payments.set(id, p); if (p.captured) o.status = 'paid'; return send(200, { ...p, signature: createHmac('sha256', 'mockkeysecret').update(`${o.id}|${id}`).digest('hex') });
   }
   if (req.method === 'POST' && url.pathname === '/emails') { const b = JSON.parse(await read(req)); console.log('EMAIL to', b.to, 'subject', b.subject); return send(200, { id: 'email_' + (++n) }); }
