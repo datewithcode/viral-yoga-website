@@ -136,7 +136,7 @@ import { isConfigured } from '../lib/supabase';
 </Base>
 
 <script>
-  import { supabase, inr, formatDate, daysUntil } from '../lib/supabase';
+  import { supabase, inr, formatDate, daysUntil, watchHeader } from '../lib/supabase';
   import { site } from '../data/site';
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -153,6 +153,10 @@ import { isConfigured } from '../lib/supabase';
   if (supabase) {
     // ---- Auth -----------------------------------------------------------------
     const isStaff = (session: any) => session?.user?.app_metadata?.role === 'staff';
+    // The header decided its label before the owner typed a password. Keep it
+    // current from here on, so it reads "Admin" the moment login succeeds and
+    // "Sign in" the moment they sign out, with no refresh.
+    watchHeader();
 
     async function refreshAuth() {
       const { data: { session } } = await supabase!.auth.getSession();
