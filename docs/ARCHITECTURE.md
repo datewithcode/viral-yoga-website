@@ -52,7 +52,7 @@ flowchart LR
 | Database | `supabase/migrations/*.sql` | The tables, their rules, and every change in order. Only `enquiries` is left |
 | Server code | `supabase/functions/submit-enquiry/index.ts` | The contact-form function, plus `_shared/phone.ts` |
 | Hosting config | `wrangler.toml`, `public/_headers`, `.node-version` | Cloudflare reads these. `netlify.toml` is left over and unused |
-| Tests | `tests/` | 27 backend cases, 7 build checks, and a browser script for phone widths |
+| Tests | `tests/` | 29 backend cases, 7 build checks, and a browser script for phone widths |
 | Automatic checks | `.github/workflows/ci.yml` | Three jobs on every change, described in section 7 |
 
 ## 3. Who can see what
@@ -144,7 +144,7 @@ flowchart LR
   PR1 --> CI{3 checks}
   CI -->|check-and-build| A["astro check, build,<br/>tests/build-checks.sh"]
   CI -->|functions-typecheck| B["deno check<br/>the function"]
-  CI -->|functions-integration| C["local Supabase +<br/>mock Resend,<br/>27 cases"]
+  CI -->|functions-integration| C["local Supabase +<br/>mock Resend,<br/>29 cases"]
   CI --> M1[merge to develop]
   M1 --> PR2[pull request → main]
   PR2 --> CI2{same 3 checks}

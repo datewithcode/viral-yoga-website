@@ -18,3 +18,10 @@ drop table if exists public.members;
 drop function if exists public.plan_end_date(date, text);
 drop function if exists public.members_normalise();
 drop function if exists public.memberships_fill_end_date();
+
+-- The live project grants only what the first migration lists; a local stack
+-- also hands every table to anon and authenticated by default. Say it here so
+-- both behave the same: staff read and close enquiries, and only
+-- submit_enquiry() adds them. On the live project this changes nothing.
+revoke all on public.enquiries from anon;
+revoke insert, delete on public.enquiries from authenticated;

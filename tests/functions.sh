@@ -62,8 +62,7 @@ for i in 1 2 3 4 5 6; do enq 9111100007 10.0.0.$i >/dev/null & done; wait
 expect_eq "parallel burst: exactly three stored" "3" "$(sql "select count(*) from public.enquiries where phone = '919111100007'")"
 
 echo "== who can read and change enquiries"
-ANON=$(curl -s "$API/rest/v1/enquiries?select=id" -H "apikey: $PK")
-case "$ANON" in "[]"|*"permission denied"*) ok "anon sees no enquiries";; *) bad "anon sees no enquiries" "$ANON";; esac
+expect "anon has no access to enquiries at all" "permission denied" "$(curl -s "$API/rest/v1/enquiries?select=id" -H "apikey: $PK")"
 expect_eq "a signed-in visitor sees no enquiries" "[]" "$(q "$U" "enquiries?select=id")"
 expect "the owner reads enquiries" '"id"' "$(q "$O" "enquiries?select=id&limit=1")"
 EID=$(sql "select id from public.enquiries where phone = '919111100020'")
@@ -71,10 +70,12 @@ patch "$U" "enquiries?id=eq.$EID" '{"status":"done"}'
 expect_eq "a signed-in visitor cannot mark one done" "new" "$(sql "select status from public.enquiries where id = $EID")"
 patch "$O" "enquiries?id=eq.$EID" '{"status":"done"}'
 expect_eq "the owner marks it done" "done" "$(sql "select status from public.enquiries where id = $EID")"
-# Refused by the table grants on the live project and by row-level security on
-# the local stack, which grants table access by default. Either way, refused.
-DIRECT=$(curl -s -X POST "$API/rest/v1/enquiries" -H "apikey: $PK" -H "Authorization: Bearer $U" -H "content-type: application/json" --data '{"name":"x","phone":"919111100030"}')
-case "$DIRECT" in *"row-level security"*|*"permission denied"*) ok "a signed-in visitor cannot add one except through the form";; *) bad "a signed-in visitor cannot add one except through the form" "$DIRECT";; esac
+# Refused by the table grants, the same way as on the live project: only
+# submit_enquiry() adds enquiries, and nobody deletes them through the API.
+expect "a signed-in visitor cannot add one except through the form" "permission denied" "$(curl -s -X POST "$API/rest/v1/enquiries" -H "apikey: $PK" -H "Authorization: Bearer $U" -H "content-type: application/json" --data '{"name":"x","phone":"919111100030"}')"
+expect "the owner cannot add one directly either" "permission denied" "$(curl -s -X POST "$API/rest/v1/enquiries" -H "apikey: $PK" -H "Authorization: Bearer $O" -H "content-type: application/json" --data '{"name":"x","phone":"919111100031"}')"
+curl -s -X DELETE "$API/rest/v1/enquiries?id=eq.$EID" -H "apikey: $PK" -H "Authorization: Bearer $O" >/dev/null
+expect_eq "the owner cannot delete one through the API" "1" "$(sql "select count(*) from public.enquiries where id = $EID")"
 
 echo "== submit_enquiry can only be called by the function"
 RPC='{"p_name":"x","p_phone":"919111100009","p_email":null,"p_studio":"","p_interest":"","p_message":"","p_ip":null}'

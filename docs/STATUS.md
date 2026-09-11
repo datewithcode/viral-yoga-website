@@ -24,7 +24,7 @@ Everything is built and tested. The public website is live with placeholder cont
 | Google rating shown on the page | Yes | Yes | Hidden until you send the real numbers |
 | Privacy and terms pages | Yes | Yes | Yes, terms to confirm |
 | Admin page: owner login, and the enquiries from the contact form with WhatsApp reply and Done | Yes | Yes | Yes |
-| Backend: the enquiries table, its security rules, and the contact-form function | Yes | Yes, 27 automated cases run on every code change | Yes, Supabase project Viral-Yoga (Mumbai) |
+| Backend: the enquiries table, its security rules, and the contact-form function | Yes | Yes, 29 automated cases run on every code change | Yes, Supabase project Viral-Yoga (Mumbai) |
 | Deployment: Cloudflare | Yes | Yes | Live at viral-yoga-website.supabase-root.workers.dev, auto-deploys from GitHub |
 | Deployment: Netlify | Yes | Yes | Retired 9 Sept when the build credits ran out. The old address still serves an old copy; nothing depends on it |
 | Email provider (Resend) | Not started | No | No. Only needed for an emailed copy of each enquiry |
@@ -52,9 +52,9 @@ On the live Supabase project, after this is released:
 
 ## 2b. How to check the tests yourself
 
-1. **GitHub Actions**: https://github.com/datewithcode/viral-yoga-website/actions. The latest run on `main` has three green checks. Open `functions-integration`, expand "bash tests/run.sh": 27 lines starting with PASS, one per case, each named after what it proves (for example "parallel burst: exactly three stored").
+1. **GitHub Actions**: https://github.com/datewithcode/viral-yoga-website/actions. The latest run on `main` has three green checks. Open `functions-integration`, expand "bash tests/run.sh": 29 lines starting with PASS, one per case, each named after what it proves (for example "parallel burst: exactly three stored").
 2. **The tests are in the repo**: `tests/functions.sh`. Anyone can read what each case does.
-3. **Run them on the laptop** (Docker running): `git pull`, `supabase start`, `bash tests/run.sh`. Last line: `passed 27, failed 0`.
+3. **Run them on the laptop** (Docker running): `git pull`, `supabase start`, `bash tests/run.sh`. Last line: `passed 29, failed 0`.
 4. **Live site**: send four contact-form messages with the same phone number. The fourth is refused with "Too many messages from this number".
 5. **For the reviewer**: `docs/security-review-2026-09-08.md` lists each finding from 8 September. Only F03, the contact-form limits, applies to what is left; the other five were in the payment and member code removed on 11 September.
 
