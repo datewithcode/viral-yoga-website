@@ -10,7 +10,7 @@
 
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
-import { normalisePhone } from "../_shared/payments.ts";
+import { normalisePhone } from "../_shared/phone.ts";
 
 const CORS = {
   "access-control-allow-origin": "*",

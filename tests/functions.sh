@@ -1,13 +1,12 @@
 #!/bin/bash
-# Integration tests for the four Edge Functions and the RLS rules, run against
-# the local Supabase stack with the mock Razorpay server (tests/mock-razorpay.mjs).
-# Each case prints PASS or FAIL; the script exits non-zero if anything failed.
+# Integration tests for the submit-enquiry function and the enquiries table,
+# run against the local Supabase stack with the mock Resend server
+# (tests/mock-resend.mjs). Each case prints PASS or FAIL; the script exits
+# non-zero if anything failed.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 eval "$(supabase status -o env 2>/dev/null | grep -E '^(API_URL|PUBLISHABLE_KEY)=')"
 API=$API_URL; PK=$PUBLISHABLE_KEY
-WEBHOOK_SECRET=$(grep '^RAZORPAY_WEBHOOK_SECRET=' tests/functions.env | cut -d= -f2)
-KEY_SECRET=$(grep '^RAZORPAY_KEY_SECRET=' tests/functions.env | cut -d= -f2)
 
 PASS=0; FAIL=0
 ok()   { PASS=$((PASS+1)); echo "PASS  $1"; }
@@ -19,7 +18,7 @@ expect_eq() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1 (wanted '$2')" "$3"
 
 tok() { curl -s -X POST "$API/auth/v1/token?grant_type=password" -H "apikey: $PK" -H "content-type: application/json" \
   --data "{\"email\":\"$1\",\"password\":\"Passw0rd!x\"}" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))"; }
-A=$(tok asha@example.com); B=$(tok bala@example.com); C=$(tok chitra@example.com); D=$(tok dev@example.com); E=$(tok eve@example.com); F=$(tok farah@example.com); G=$(tok gita@example.com); O=$(tok owner@test.local)
+U=$(tok user@example.com); O=$(tok owner@test.local)
 
 # fn <function> <token or ""> <json body> [extra curl args...]  -> body + " [status]"
 fn() { local name=$1 token=$2 body=$3; shift 3
@@ -29,208 +28,59 @@ fn() { local name=$1 token=$2 body=$3; shift 3
     curl -s -w ' [%{http_code}]' -X POST "$API/functions/v1/$name" -H "apikey: $PK" -H "content-type: application/json" "$@" --data "$body"
   fi; }
 q() { curl -s "$API/rest/v1/$2" -H "apikey: $PK" -H "Authorization: Bearer $1"; }
-sig() { printf '%s|%s' "$1" "$2" | openssl dgst -sha256 -hmac "$KEY_SECRET" | sed 's/^.* //'; }
-mockpay() { curl -s -u a:b -X POST http://127.0.0.1:4599/mock/pay -d "$1"; }
-jget() { python3 -c "import sys,json; s=sys.stdin.read(); s=s.rsplit(' [',1)[0] if ' [' in s else s; print(json.loads(s).get('$1',''))"; }
-webhook() { # webhook <event id> <payment entity json> [event name]
-  local body; body=$(printf '{"event":"%s","payload":{"payment":{"entity":%s}}}' "${3:-payment.captured}" "$2")
-  local ws; ws=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | sed 's/^.* //')
-  curl -s -w ' [%{http_code}]' -X POST "$API/functions/v1/razorpay-webhook" -H "x-razorpay-signature: $ws" -H "x-razorpay-event-id: $1" --data "$body"; }
+patch() { curl -s -X PATCH "$API/rest/v1/$2" -H "apikey: $PK" -H "Authorization: Bearer $1" -H "content-type: application/json" --data "$3" >/dev/null; }
 sql() { bash tests/sql.sh "$1"; }
-verify() { fn verify-payment "$1" "$(printf '{"razorpay_order_id":"%s","razorpay_payment_id":"%s","razorpay_signature":"%s"}' "$2" "$3" "$(sig "$2" "$3")")"; }
+# enq <phone> [address] [name]: one contact-form message. The body is built with
+# printf: inline JSON with \" escapes reaches the API mangled under macOS's bash 3.2.
+enq() { fn submit-enquiry "" "$(printf '{"name":"%s","phone":"%s","message":"hi"}' "${3:-Test}" "$1")" -H "x-forwarded-for: ${2:-10.0.0.1}"; }
+fn_exists() { sql "select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = '$1'"; }
 
-echo "== create-order"
-expect "no token is refused"         "[401]" "$(fn create-order "" '{"plan":"3 months","name":"Asha","phone":"9876500001"}')"
-R=$(fn create-order "$A" '{"plan":"3 months","name":"Asha Rao","phone":"98765 00001","amount":1}')
-expect "asha creates an order"       "[200]" "$R"
-ORD=$(echo "$R" | jget order_id)
-expect_eq "server decides the amount" "500000" "$(echo "$R" | jget amount)"
-R2=$(fn create-order "$A" '{"plan":"3 months","name":"Asha Rao","phone":"9876500001"}')
-expect_eq "same plan again reuses the open order" "$ORD" "$(echo "$R2" | jget order_id)"
-expect "unknown plan"                "[400]" "$(fn create-order "$A" '{"plan":"free","name":"Asha","phone":"9876500001"}')"
-expect "bad phone"                   "[400]" "$(fn create-order "$A" '{"plan":"1 month","name":"Asha","phone":"123"}')"
+echo "== only enquiries are left"
+expect_eq "the only table left is enquiries" "enquiries" "$(sql "select string_agg(table_name, ',' order by table_name) from information_schema.tables where table_schema = 'public'")"
+for f in plan_end_date members_normalise memberships_fill_end_date; do
+  expect_eq "the database function $f is gone" "0" "$(fn_exists "$f")"
+done
+expect_eq "submit_enquiry is still there" "1" "$(fn_exists submit_enquiry)"
+for f in create-order verify-payment razorpay-webhook; do
+  expect "the $f function is gone" "[404]" "$(fn "$f" "$U" '{}')"
+done
 
-echo "== verify-payment"
-P=$(mockpay "{\"order_id\":\"$ORD\",\"contact\":\"+919876500001\",\"email\":\"asha@example.com\"}"); PID=$(echo "$P" | jget id)
-expect "captured payment is recorded" '"ok":true' "$(verify "$A" "$ORD" "$PID")"
-expect "verifying twice is a no-op"   '"duplicate":true' "$(verify "$A" "$ORD" "$PID")"
-expect "webhook for the same payment is a no-op" '"duplicate":true' "$(webhook evt_1 "$P")"
-expect "webhook redelivered after success" '"duplicate":true' "$(webhook evt_1 "$P")"
-P2=$(mockpay "{\"order_id\":\"$ORD\"}"); PID2=$(echo "$P2" | jget id)
-expect "bala cannot confirm asha's order" "[403]" "$(verify "$B" "$ORD" "$PID2")"
-expect "wrong signature"             "[401]" "$(fn verify-payment "$A" "$(printf '{"razorpay_order_id":"%s","razorpay_payment_id":"%s","razorpay_signature":"abc"}' "$ORD" "$PID2")")"
-R3=$(fn create-order "$B" '{"plan":"1 month","name":"Bala","phone":"9876500002"}'); ORD2=$(echo "$R3" | jget order_id)
-P3=$(mockpay "{\"order_id\":\"$ORD2\",\"status\":\"authorized\"}"); PID3=$(echo "$P3" | jget id)
-expect "authorised but not captured stays pending" '"pending":true' "$(verify "$B" "$ORD2" "$PID3")"
-P4=$(mockpay "{\"order_id\":\"$ORD2\",\"amount\":100}"); PID4=$(echo "$P4" | jget id)
-expect "wrong amount is rejected, not retried" "[422]" "$(verify "$B" "$ORD2" "$PID4")"
-
-echo "== webhook: payments without a local order (F04)"
-P5='{"id":"pay_NOORDER","amount":900000,"contact":"9876500001","email":"asha@example.com","notes":{"name":"Someone"},"created_at":1757100000}'
-expect "no order: acknowledged so Razorpay stops retrying" "[200]" "$(webhook evt_2 "$P5")"
-expect_eq "no order: kept unprocessed for the attention list" "f" "$(sql "select processed from public.webhook_events where event_id='evt_2'")"
-expect_eq "no order: asha's phone did NOT get a membership" "1" "$(sql "select count(*) from public.memberships m join public.members x on x.id=m.member_id where x.phone='919876500001'")"
-P6='{"id":"pay_FAKEORDER","amount":500000,"order_id":"order_NOTOURS","contact":"9876500001","created_at":1757100000}'
-expect "unknown order id: acknowledged" '"ok":false' "$(webhook evt_3 "$P6")"
-expect_eq "unknown order id: no membership created" "0" "$(sql "select count(*) from public.memberships where razorpay_payment_id='pay_FAKEORDER'")"
-
-echo "== webhook: transient failure is retried (F02)"
-R4=$(fn create-order "$B" '{"plan":"6 months","name":"Bala","phone":"9876500002"}'); ORD3=$(echo "$R4" | jget order_id)
-P7=$(mockpay "{\"order_id\":\"$ORD3\"}"); PID7=$(echo "$P7" | jget id)
-sql "revoke insert on public.memberships from service_role" >/dev/null
-expect "database write fails: webhook answers 500" "[500]" "$(webhook evt_4 "$P7")"
-expect_eq "attempt 1 logged, unprocessed" "false|1" "$(sql "select processed||'|'||attempts from public.webhook_events where event_id='evt_4'")"
-sql "grant insert on public.memberships to service_role" >/dev/null
-expect "same event redelivered: recorded" '"ok":true' "$(webhook evt_4 "$P7")"
-expect_eq "attempt 2 logged, processed" "true|2" "$(sql "select processed||'|'||attempts from public.webhook_events where event_id='evt_4'")"
-expect_eq "exactly one membership for that payment" "1" "$(sql "select count(*) from public.memberships where razorpay_payment_id='$PID7'")"
-expect_eq "order marked paid" "paid" "$(sql "select status from public.payment_orders where razorpay_order_id='$ORD3'")"
-expect_eq "a retry still in flight is NOT put in front of the owner" "false" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_4'")"
-expect_eq "a payment with no order IS put in front of the owner" "true" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_2'")"
-expect "other events are ignored" '"ignored":"payment.failed"' "$(webhook evt_5 "$P7" payment.failed)"
-expect "bad webhook signature" "[401]" "$(curl -s -w ' [%{http_code}]' -X POST "$API/functions/v1/razorpay-webhook" -H "x-razorpay-signature: nope" --data '{"event":"payment.captured"}')"
-
-echo "== member linking (F01)"
-R5=$(fn create-order "$C" '{"plan":"6 months","name":"Chitra M","phone":"9000011111"}')
-expect "walk-in with matching email links to her own row" "[200]" "$R5"
-expect_eq "chitra's row now carries her user id" "1" "$(sql "select count(*) from public.members where phone='919000011111' and email='chitra@example.com' and user_id is not null")"
-expect_eq "the studio's name for her is kept, not the one she typed" "Chitra Walk-in" "$(sql "select name from public.members where phone='919000011111'")"
-expect "another account cannot claim a walk-in's phone" "[409]" "$(fn create-order "$D" '{"plan":"1 month","name":"Dev","phone":"9000022222"}')"
-expect_eq "phone-only walk-in stays unlinked" "1" "$(sql "select count(*) from public.members where phone='919000022222' and user_id is null")"
-expect "dev cannot use asha's phone" "[409]" "$(fn create-order "$D" '{"plan":"1 month","name":"Dev","phone":"9876500001"}')"
-expect_eq "dev got no member row" "0" "$(sql "select count(*) from public.members where email='dev@example.com'")"
-R6=$(fn create-order "$D" '{"plan":"1 month","name":"Dev","phone":"9876500004"}')
-expect "dev with his own phone is fine" "[200]" "$R6"
-expect "asha changing to dev's phone is refused" "[409]" "$(fn create-order "$A" '{"plan":"1 month","name":"Asha","phone":"9876500004"}')"
-
-echo "== order limit (F05)"
-EVEID=$(sql "select id from auth.users where email='eve@example.com'")
-sql "insert into public.members (name, phone, email, user_id) values ('Eve','9876500005','eve@example.com','$EVEID')" >/dev/null
-sql "insert into public.payment_orders (razorpay_order_id, member_id, plan, amount_paise) select 'order_old'||g, id, '1 month', 200000 from public.members, generate_series(1,5) g where email='eve@example.com'" >/dev/null
-sql "update public.payment_orders set created_at = now() - interval '40 minutes' where razorpay_order_id like 'order_old%'" >/dev/null
-expect "sixth order in an hour is refused" "[429]" "$(fn create-order "$E" '{"plan":"1 year","name":"Eve","phone":"9876500005"}')"
-
-echo "== webhook: retrying forever is not a plan (review round 2)"
-RC=$(fn create-order "$F" '{"plan":"1 month","name":"Farah","phone":"9876500006"}')
-ORDC=$(echo "$RC" | jget order_id); PC=$(mockpay "{\"order_id\":\"$ORDC\"}"); PIDC=$(echo "$PC" | jget id)
-sql "revoke insert on public.memberships from service_role" >/dev/null
-for i in 1 2 3 4; do webhook evt_ceiling "$PC" >/dev/null; done
-expect "keeps asking for a retry while under the ceiling" "[500]" "$(webhook evt_ceiling2 "$PC")"
-expect "stops asking once the ceiling is reached" "[200]" "$(webhook evt_ceiling "$PC")"
-expect_eq "and hands it to the owner instead" "true" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_ceiling'")"
-sql "grant insert on public.memberships to service_role" >/dev/null
-
-echo "== payments: an order is settled exactly once (review round 2)"
-RD=$(fn create-order "$G" '{"plan":"1 month","name":"Gita","phone":"9876500007"}')
-ORDD=$(echo "$RD" | jget order_id)
-PD1=$(mockpay "{\"order_id\":\"$ORDD\"}"); PIDD1=$(echo "$PD1" | jget id)
-expect "the first payment is recorded" '"ok":true' "$(verify "$G" "$ORDD" "$PIDD1")"
-expect_eq "the order is marked paid straight away" "paid" "$(sql "select status from public.payment_orders where razorpay_order_id='$ORDD'")"
-PD2=$(mockpay "{\"order_id\":\"$ORDD\"}"); PIDD2=$(echo "$PD2" | jget id)
-expect "a second, different payment on that order is refused" "[422]" "$(verify "$G" "$ORDD" "$PIDD2")"
-expect_eq "and no second membership appears" "1" "$(sql "select count(*) from public.memberships where razorpay_order_id='$ORDD'")"
-expect_eq "the refused payment is put in front of the owner" "1" "$(sql "select count(*) from public.webhook_events where needs_attention and payload::text like '%$PIDD2%'")"
-expect "Razorpay's own webhook for it is also refused" '"ok":false' "$(webhook evt_dup_after_verify "$PD2")"
-expect_eq "but the owner still sees that payment once, not twice" "1" "$(sql "select count(*) from public.webhook_events where needs_attention and payload::text like '%$PIDD2%'")"
-PD3=$(mockpay "{\"order_id\":\"$ORDD\"}"); PIDD3=$(echo "$PD3" | jget id)
-expect "a third payment, webhook first: refused" '"ok":false' "$(webhook evt_dup_before_verify "$PD3")"
-expect "then the browser: refused" "[422]" "$(verify "$G" "$ORDD" "$PIDD3")"
-expect_eq "webhook first, browser second: still listed once" "1" "$(sql "select count(*) from public.webhook_events where needs_attention and payload::text like '%$PIDD3%'")"
-
-echo "== payments: a retry finishes a half-done first attempt (review round 2)"
-RE=$(fn create-order "$F" '{"plan":"3 months","name":"Farah","phone":"9876500006"}')
-ORDE=$(echo "$RE" | jget order_id); PE=$(mockpay "{\"order_id\":\"$ORDE\"}"); PIDE=$(echo "$PE" | jget id)
-sql "revoke update on public.payment_orders from service_role" >/dev/null
-expect "first delivery fails after the membership was created" "[500]" "$(webhook evt_half "$PE")"
-expect_eq "membership exists, order still says created" "1|created" "$(sql "select count(*)||'|'||max(o.status) from public.memberships m join public.payment_orders o on o.razorpay_order_id=m.razorpay_order_id where m.razorpay_payment_id='$PIDE'")"
-sql "grant update on public.payment_orders to service_role" >/dev/null
-expect "the retry finishes the job" '"ok":true' "$(webhook evt_half "$PE")"
-expect_eq "order is marked paid by the retry" "paid" "$(sql "select status from public.payment_orders where razorpay_order_id='$ORDE'")"
-expect_eq "and there is still exactly one membership" "1" "$(sql "select count(*) from public.memberships where razorpay_payment_id='$PIDE'")"
-
-echo "== create-order: probing other people's phone numbers runs out (review round 2)"
-PROBE=""
-for i in $(seq 1 20); do PROBE=$(fn create-order "$G" '{"plan":"1 month","name":"Gita","phone":"9000022222"}'); done
-expect "repeated probing is cut off" "[429]" "$PROBE"
-expect_eq "attempts are counted per account" "1" "$(sql "select case when count(*) >= 15 then 1 else 0 end from public.order_attempts oa join auth.users u on u.id=oa.user_id where u.email='gita@example.com'")"
-expect "students cannot read the attempt log" "permission denied" "$(curl -s "$API/rest/v1/order_attempts?select=id" -H "apikey: $PK" -H "Authorization: Bearer $A")"
-
-echo "== create-order: a walk-in with no email is told something useful (review round 2)"
-expect "the message says what they can actually do" "no email is linked" "$(fn create-order "$E" '{"plan":"1 month","name":"Eve","phone":"9000022222"}')"
-
-echo "== enquiries (F03)"
-enq() { fn submit-enquiry "" "$(printf '{"name":"Test","phone":"%s","message":"hi"}' "$1")" -H "x-forwarded-for: ${2:-10.0.0.1}"; }
+echo "== the contact form"
+expect "a valid enquiry is saved and emailed" '"email":"sent"' "$(enq 9111100020 10.0.0.50 'Test Person')"
+expect_eq "it is stored once, with the phone in its stored form" "1" "$(sql "select count(*) from public.enquiries where phone = '919111100020' and name = 'Test Person'")"
+expect "a missing name is refused" "[400]" "$(fn submit-enquiry "" '{"name":"","phone":"9111100021"}')"
+expect "a bad phone number is refused" "[400]" "$(fn submit-enquiry "" '{"name":"Test","phone":"123"}')"
+expect "a bad email is refused" "[400]" "$(fn submit-enquiry "" '{"name":"Test","phone":"9111100008","email":"nope"}')"
 expect "honeypot silently accepted" '"ok":true' "$(fn submit-enquiry "" '{"name":"Bot","phone":"9111100000","message":"x","bot-field":"y"}')"
-expect_eq "honeypot stored nothing" "0" "$(sql "select count(*) from public.enquiries where phone='919111100000'")"
+expect_eq "honeypot stored nothing" "0" "$(sql "select count(*) from public.enquiries where phone = '919111100000'")"
 for i in 1 2 3; do enq 9111100001 >/dev/null; done
 expect "fourth from one phone refused" "[429]" "$(enq 9111100001)"
 for i in 2 3 4 5 6; do enq 911110000$i 10.0.0.9 >/dev/null; done
 expect "sixth from one address refused" "[429]" "$(enq 9111100010 10.0.0.9)"
 # Six at once from a new phone: the lock must let exactly three through.
 for i in 1 2 3 4 5 6; do enq 9111100007 10.0.0.$i >/dev/null & done; wait
-expect_eq "parallel burst: exactly three stored" "3" "$(sql "select count(*) from public.enquiries where phone='919111100007'")"
-expect "bad email rejected" "[400]" "$(fn submit-enquiry "" '{"name":"T","phone":"9111100008","email":"nope"}')"
-expect "student cannot call submit_enquiry directly" "42501" "$(curl -s -X POST "$API/rest/v1/rpc/submit_enquiry" -H "apikey: $PK" -H "Authorization: Bearer $A" -H "content-type: application/json" --data '{"p_name":"x","p_phone":"919111100009","p_email":null,"p_studio":"","p_interest":"","p_message":"","p_ip":null}')"
+expect_eq "parallel burst: exactly three stored" "3" "$(sql "select count(*) from public.enquiries where phone = '919111100007'")"
 
-echo "== renewals keep every paid day (review round 3)"
-expect_eq "a first purchase starts the day it is paid" "true" "$(sql "select (starts_on = (now() at time zone 'Asia/Kolkata')::date)::text from public.memberships where razorpay_payment_id='$PIDD1'")"
-NEXT=$(sql "select (max(m.ends_on) + 1)::text from public.memberships m join public.members x on x.id=m.member_id where x.email='asha@example.com'")
-RR=$(fn create-order "$A" '{"plan":"1 month","name":"Asha Rao","phone":"9876500001"}'); ORDR=$(echo "$RR" | jget order_id)
-PR=$(mockpay "{\"order_id\":\"$ORDR\"}"); PIDR=$(echo "$PR" | jget id)
-expect "asha renews while her plan is still running" '"ok":true' "$(verify "$A" "$ORDR" "$PIDR")"
-expect_eq "the new plan starts the day after the old one ends" "$NEXT" "$(sql "select starts_on::text from public.memberships where razorpay_payment_id='$PIDR'")"
-expect "the browser is told the start date" "\"starts_on\":\"$NEXT\"" "$(verify "$A" "$ORDR" "$PIDR")"
+echo "== who can read and change enquiries"
+ANON=$(curl -s "$API/rest/v1/enquiries?select=id" -H "apikey: $PK")
+case "$ANON" in "[]"|*"permission denied"*) ok "anon sees no enquiries";; *) bad "anon sees no enquiries" "$ANON";; esac
+expect_eq "a signed-in visitor sees no enquiries" "[]" "$(q "$U" "enquiries?select=id")"
+expect "the owner reads enquiries" '"id"' "$(q "$O" "enquiries?select=id&limit=1")"
+EID=$(sql "select id from public.enquiries where phone = '919111100020'")
+patch "$U" "enquiries?id=eq.$EID" '{"status":"done"}'
+expect_eq "a signed-in visitor cannot mark one done" "new" "$(sql "select status from public.enquiries where id = $EID")"
+patch "$O" "enquiries?id=eq.$EID" '{"status":"done"}'
+expect_eq "the owner marks it done" "done" "$(sql "select status from public.enquiries where id = $EID")"
+# Refused by the table grants on the live project and by row-level security on
+# the local stack, which grants table access by default. Either way, refused.
+DIRECT=$(curl -s -X POST "$API/rest/v1/enquiries" -H "apikey: $PK" -H "Authorization: Bearer $U" -H "content-type: application/json" --data '{"name":"x","phone":"919111100030"}')
+case "$DIRECT" in *"row-level security"*|*"permission denied"*) ok "a signed-in visitor cannot add one except through the form";; *) bad "a signed-in visitor cannot add one except through the form" "$DIRECT";; esac
 
-echo "== webhook arriving before the browser (review round 3)"
-RW=$(fn create-order "$B" '{"plan":"1 year","name":"Bala","phone":"9876500002"}'); ORDW=$(echo "$RW" | jget order_id)
-PW=$(mockpay "{\"order_id\":\"$ORDW\"}"); PIDW=$(echo "$PW" | jget id)
-expect "webhook first: recorded" '"ok":true' "$(webhook evt_first "$PW")"
-expect "browser second: already done" '"duplicate":true' "$(verify "$B" "$ORDW" "$PIDW")"
-expect_eq "one membership" "1" "$(sql "select count(*) from public.memberships where razorpay_payment_id='$PIDW'")"
-
-echo "== giving up must not list a payment that is already recorded (review round 3)"
-RG=$(fn create-order "$F" '{"plan":"6 months","name":"Farah","phone":"9876500006"}'); ORDG=$(echo "$RG" | jget order_id)
-PG=$(mockpay "{\"order_id\":\"$ORDG\"}"); PIDG=$(echo "$PG" | jget id)
-sql "revoke update on public.payment_orders from service_role" >/dev/null
-for i in 1 2 3 4; do webhook evt_giveup "$PG" >/dev/null; done
-expect_eq "membership was created on the first try" "1" "$(sql "select count(*) from public.memberships where razorpay_payment_id='$PIDG'")"
-expect "fifth try: stops, and says it is recorded" '"recorded":true' "$(webhook evt_giveup "$PG")"
-expect_eq "not put in front of the owner" "true|false" "$(sql "select processed::text||'|'||needs_attention::text from public.webhook_events where event_id='evt_giveup'")"
-sql "grant update on public.payment_orders to service_role" >/dev/null
-
-echo "== payment states and currency (review round 3)"
-PX=$(mockpay "{\"order_id\":\"$ORD2\",\"status\":\"failed\"}"); PIDX=$(echo "$PX" | jget id)
-expect "a failed payment is final, not pending" '"failed":true' "$(verify "$B" "$ORD2" "$PIDX")"
-ORD6=$(echo "$R6" | jget order_id)
-PY=$(mockpay "{\"order_id\":\"$ORD6\",\"currency\":\"USD\"}"); PIDY=$(echo "$PY" | jget id)
-expect "a payment not in rupees is refused" "not INR" "$(verify "$D" "$ORD6" "$PIDY")"
-
-echo "== the desk form cannot save the same payment twice (review round 3)"
-WALKIN=$(sql "select id from public.members where phone='919000022222'")
-desk() { curl -s -w ' [%{http_code}]' -X POST "$API/rest/v1/memberships" -H "apikey: $PK" -H "Authorization: Bearer $O" -H "content-type: application/json" -H "prefer: return=minimal" --data "{\"member_id\":$WALKIN,\"plan\":\"1 month\",\"amount_paise\":180000,\"starts_on\":\"2026-09-10\",\"source\":\"cash\"}"; }
-expect "owner records a cash payment, with a discount" "[201]" "$(desk)"
-expect "the same payment a second time is refused" "memberships_desk_once_idx" "$(desk)"
-expect_eq "one row, at the discounted amount" "1|180000" "$(sql "select count(*)||'|'||max(amount_paise) from public.memberships where member_id=$WALKIN and starts_on='2026-09-10'")"
-
-echo "== the owner can clear the attention list (review round 3)"
-expect_eq "evt_2 is listed" "true" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_2'")"
-curl -s -X PATCH "$API/rest/v1/webhook_events?event_id=eq.evt_2" -H "apikey: $PK" -H "Authorization: Bearer $O" -H "content-type: application/json" --data '{"needs_attention":false}' >/dev/null
-expect_eq "owner marks it done" "false" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_2'")"
-curl -s -X PATCH "$API/rest/v1/webhook_events?event_id=eq.evt_3" -H "apikey: $PK" -H "Authorization: Bearer $A" -H "content-type: application/json" --data '{"needs_attention":false}' >/dev/null
-expect_eq "a student cannot" "true" "$(sql "select needs_attention::text from public.webhook_events where event_id='evt_3'")"
-expect "and the owner can change nothing but that one column" "permission denied" "$(curl -s -X PATCH "$API/rest/v1/webhook_events?event_id=eq.evt_3" -H "apikey: $PK" -H "Authorization: Bearer $O" -H "content-type: application/json" --data '{"processed":true}')"
-expect_eq "evt_3 is untouched" "false" "$(sql "select processed::text from public.webhook_events where event_id='evt_3'")"
-
-echo "== row level security"
-expect_eq "asha sees only her memberships" "2" "$(q "$A" "memberships?select=plan" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')"
-expect_eq "asha sees only her member row" "1" "$(q "$A" "members?select=id" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')"
-expect_eq "eve (never bought) sees no memberships" "0" "$(q "$E" "memberships?select=plan" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')"
-ANON=$(curl -s "$API/rest/v1/members?select=id" -H "apikey: $PK")
-case "$ANON" in "[]"|*"permission denied"*) ok "anon sees nothing";; *) bad "anon sees nothing" "$ANON";; esac
-expect "students cannot read enquiries" "[]" "$(q "$A" "enquiries?select=id")"
-expect "owner reads enquiries" '"id"' "$(q "$O" "enquiries?select=id&limit=1")"
-expect "owner sees the attention list" 'pay_NOORDER' "$(q "$O" "webhook_events?select=payload&processed=eq.false&event_id=eq.evt_2")"
-expect "student cannot insert a membership" "row-level security" "$(curl -s -X POST "$API/rest/v1/memberships" -H "apikey: $PK" -H "Authorization: Bearer $A" -H "content-type: application/json" --data '{"member_id":1,"plan":"1 year","amount_paise":0,"source":"cash"}')"
+echo "== submit_enquiry can only be called by the function"
+RPC='{"p_name":"x","p_phone":"919111100009","p_email":null,"p_studio":"","p_interest":"","p_message":"","p_ip":null}'
+expect "anon cannot call it directly" "42501" "$(curl -s -X POST "$API/rest/v1/rpc/submit_enquiry" -H "apikey: $PK" -H "content-type: application/json" --data "$RPC")"
+expect "a signed-in visitor cannot call it directly" "42501" "$(curl -s -X POST "$API/rest/v1/rpc/submit_enquiry" -H "apikey: $PK" -H "Authorization: Bearer $U" -H "content-type: application/json" --data "$RPC")"
+expect_eq "and nothing was stored" "0" "$(sql "select count(*) from public.enquiries where phone = '919111100009'")"
 
 echo
 echo "passed $PASS, failed $FAIL"

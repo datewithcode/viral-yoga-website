@@ -3,11 +3,6 @@
 # builds the site: with no environment variables at all.
 #
 #   bash tests/build-checks.sh
-#
-# The header greeting reads the session straight out of browser storage, under a
-# key derived from the Supabase project name. That name is baked in at build
-# time. When it came out empty the header could never find a signed-in member,
-# and nothing failed: no error, no warning, just a permanent "Sign in" button.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -20,15 +15,14 @@ env -u PUBLIC_SUPABASE_URL -u PUBLIC_SUPABASE_PUBLISHABLE_KEY npm run build >/de
   || { echo "FAIL  the site does not build without environment variables"; exit 1; }
 ok "builds with no environment variables"
 
-# The bug: an empty project name silently disables the header greeting.
-REF=$(grep -o 'const projectRef = "[^"]*"' dist/index.html | head -1 | sed 's/.*= "//;s/"//')
-if [ -n "$REF" ]; then ok "header knows the project name ($REF)"; else bad "header knows the project name" "empty"; fi
-
-# It has to be the same project the rest of the site talks to.
-if grep -rq "$REF" dist/_astro/*.js 2>/dev/null; then
-  ok "header and page agree on the project"
+# The contact form sends each enquiry to Supabase from the browser, so the
+# project address must be baked into the shipped JavaScript. It comes from
+# site.ts, which is what lets the site build with nothing configured.
+SUPA=$(grep -o "supabaseUrl: '[^']*'" src/data/site.ts | sed "s/^supabaseUrl: '//;s/'$//")
+if [ -n "$SUPA" ] && grep -rqF "$SUPA" dist/_astro/*.js 2>/dev/null; then
+  ok "the contact form knows where to send enquiries ($SUPA)"
 else
-  bad "header and page agree on the project" "$REF is not in the shipped JavaScript"
+  bad "the contact form knows where to send enquiries" "'${SUPA:-no supabaseUrl in site.ts}' is not in the shipped JavaScript"
 fi
 
 # The phone menu must sit OUTSIDE <header>. The header carries a blur, and a blur
@@ -47,9 +41,6 @@ expect_match "security headers ship with the site" "X-Frame-Options" dist/_heade
 expect_match "a real 404 page is built" "Page not found" dist/404.html
 expect_match "the address is not the retired host" "workers.dev" dist/index.html
 if grep -q "startling-beignet" dist/index.html; then bad "no links to the retired host" "found netlify address"; else ok "no links to the retired host"; fi
-
-# Plan names and prices are copied into several files; they must all agree.
-if node tests/prices-agree.mjs >/tmp/vy-prices.log 2>&1; then ok "plan names and prices agree everywhere"; else bad "plan names and prices agree everywhere" "$(grep -A1 FAIL /tmp/vy-prices.log | head -4)"; fi
 
 echo
 echo "passed $PASS, failed $FAIL"

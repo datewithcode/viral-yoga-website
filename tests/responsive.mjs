@@ -14,7 +14,7 @@
 //   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
 //     --remote-debugging-port=9222 --user-data-dir=/tmp/vy-chrome --no-first-run &
 //   node tests/responsive.mjs
-const PAGES = ['/', '/my-membership/', '/admin/', '/privacy/', '/terms/', '/refunds/', '/thanks/'];
+const PAGES = ['/', '/admin/', '/privacy/', '/terms/', '/thanks/'];
 const WIDTHS = [320, 360, 390, 430];
 
 const list = await (await fetch('http://127.0.0.1:9222/json')).json();

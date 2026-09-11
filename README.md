@@ -3,7 +3,7 @@
 A fast, static website for a yoga studio with two locations (Anjar and Adipur, Kutch).
 Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com). No database, no server, nothing to maintain.
 
-Sections: hero, why people come, classes, weekly timetable (per studio), about, your teacher and their achievements, photo gallery, two studio locations with Google Maps, student testimonials, common questions, contact form, WhatsApp button. Plus privacy, terms and refund pages, which Razorpay requires before it will approve an account.
+Sections: hero, why people come, classes, weekly timetable (per studio), about, your teacher and their achievements, photo gallery, two studio locations with Google Maps, student testimonials, common questions, contact form, WhatsApp button. Plus privacy and terms pages.
 
 How all the pieces connect, with diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -36,9 +36,9 @@ Edit it to change:
 - testimonials. **The ones in the file are invented.** Replace them with real feedback or set the list to `[]` to hide the section.
 - the teacher and their achievements (the `instructor` block). **Name, photo and every achievement in the file are invented.** Put in the real name, role and a short bio, then list the achievements newest first. Each one takes a `year` (leave it `''` if there is no date), a `title`, and an optional `detail` line. Set `achievements: []` to hide the whole section.
 
-Also set `upiId` in the `pricing` block, or the UPI pay buttons will point at a dummy ID. And set `url` to your live address: the WhatsApp reminder message sent from the admin page links to it.
+Also set `url` to your live address: link previews and the page addresses search engines see are built from it.
 
-Also check the claims in the `copy` block before launch: the placeholder text promises a free first class, a same-day reply, and one membership valid at both studios. Change anything that is not true for you.
+Also check the claims in the `copy` block before launch: the placeholder text promises a free first class, a same-day reply, and one plan valid at both studios. Change anything that is not true for you.
 
 Then run `npm run build` again.
 
@@ -70,23 +70,19 @@ The maps currently point at the towns of Anjar and Adipur. To show your exact st
 
 No API key is needed.
 
-### Membership prices and payments
+### Fees
 
-Plans and prices are in the `pricing` block of `src/data/site.ts`. Two ways to get paid, and both can be on at once:
-
-**UPI (works today, no fees).** Set `upiId` to the UPI ID you receive money on (for example `9876543210@ybl` or `studio@okaxis`) and `upiPayeeName` to the name shown to the payer. Each plan then gets a "Pay via UPI" button on phones (opens GPay, PhonePe, Paytm or any UPI app with the amount filled in) and a QR code on desktops. Payments land in your bank directly. You confirm them yourself: the page asks the student to WhatsApp you a screenshot.
-
-**Online payment through Razorpay (UPI, cards, net banking; about 2% fee).** The "Buy online" button on each plan takes the student to `/my-membership`, where they sign in with their email and pay. The membership is tied to their account automatically and shows their days remaining. This needs the Supabase setup in section 4 and a Razorpay account (KYC takes a few days).
+The price list is in the `pricing` block of `src/data/site.ts`: a name, a price and a one-line note for each plan, and the sentence shown above them. It is for information only. The website takes no payments; fees are paid at the studio.
 
 ### Colours and fonts
 
 Colours and typefaces are defined at the top of `src/styles/global.css` in the `@theme` block. Change the hex values there and every section updates. Fonts are loaded from Google Fonts in `src/layouts/Base.astro`.
 
-### Privacy, terms and refunds
+### Privacy and terms
 
-Three pages live at `/privacy/`, `/terms/` and `/refunds/`, linked from the footer. Razorpay's compliance team reads them during account approval and will pause your application if they are missing or do not match the business, so they are not optional once you take online payments.
+Two pages live at `/privacy/` and `/terms/`, linked from the footer.
 
-The privacy page describes what the site genuinely does with personal information, so it is accurate as written. **The terms and refund pages describe studio policy and must be read and confirmed by the owner**, in particular the refund window and how long refunds take. Both come from the `legal` block in `src/data/site.ts`. None of this is legal advice; have someone check it if the studio is a registered company.
+The privacy page describes what the site genuinely does with personal information, which is the contact form and nothing else, so it is accurate as written. **The terms page describes how the studio runs and must be read and confirmed by the owner.** The business name on both comes from the `legal` block in `src/data/site.ts`. None of this is legal advice; have someone check it if the studio is a registered company.
 
 ## 3. Go live
 
@@ -100,8 +96,7 @@ The site is a folder of static files, so any host works. Nothing needs configuri
 4. **Deploy.** The first build takes about a minute and gives you an address ending in `.workers.dev`.
 
 The deploy command reads `wrangler.toml`, which says the site is a folder of static files in `dist` with a real 404 page. The project name in the dashboard must match the `name` in that file.
-5. Send me that address. It goes into `site.url` in `src/data/site.ts`, which is used for link previews and the reminder messages sent from the admin page.
-6. In Supabase, **Authentication > URL Configuration**, add the new address to **Site URL** and to **Redirect URLs**, as `https://YOUR-SITE.pages.dev/my-membership/`. Sign-in emails will not work until this is done.
+5. Send me that address. It goes into `site.url` in `src/data/site.ts`, which is used for link previews.
 
 `public/_headers` carries the security and caching rules, the same ones `netlify.toml` sets. Both files can stay: whichever host builds the site reads its own.
 
@@ -136,43 +131,32 @@ Rebuild and deploy. Submissions will be emailed to you by Formspree.
 
 Set `url` in `src/data/site.ts` to your real address (for example `https://shantiyoga.in`). This is used for social sharing previews and the form's thank-you redirect.
 
-## 4. Membership system (Supabase)
+## 4. Enquiries and the admin page (Supabase)
 
-The public site is static. Members, payments, and reminders live in a Supabase project (free tier works; see the note about pausing below). Design notes: `docs/superpowers/specs/2026-09-06-membership-system-design.md`.
+The public site is static. The only things kept in the Supabase project are the messages sent through the contact form and the owner's login. Nobody else has an account.
 
 What it gives you:
 
-- **Automatic member list.** Every online payment is tied to the student's account and recorded with its end date the moment they pay. UPI and cash payments are added by hand in admin (ten seconds).
-- **Admin page** at `/admin`, password protected. Lists who is active, who is due for a reminder (ends within 3 days or ended in the last 30), and who has lapsed. Each due row has a WhatsApp button that opens a ready-typed renewal message; the tap is logged so you can see who was already reminded.
-- **Enquiries in admin.** Every contact-form message is saved and listed at the top of the admin page with a one-tap WhatsApp reply and a Done button. A copy is emailed to the studio through Resend if the email secrets are set. If Supabase is unreachable, the form falls back to Netlify Forms, so nothing is lost.
-- **Student page** at `/my-membership`. The student signs in with an email link, buys a plan through Razorpay checkout, and sees plan, dates, and days remaining.
+- **Enquiries in admin.** Every contact-form message is saved and listed on the admin page with a one-tap WhatsApp reply and a Done button. A copy is emailed to the studio through Resend if the email secrets are set. If Supabase cannot be reached, the form tells the visitor to message on WhatsApp instead.
+- **Admin page** at `/admin`, for the owner only, signed in with email and password. Any other account is signed straight out.
 
 ### One-time setup
 
-1. **Create the Supabase project** (or ask Claude Code to do it through the Supabase plugin). Note the project ref. Create it with "Automatically expose new tables" **off** and "Enable automatic RLS" **on**; the migrations grant table access explicitly, including the `service_role` grants the Edge Functions need (`20260908091000_service_role_grants.sql`).
+1. **Create the Supabase project** (or ask Claude Code to do it through the Supabase plugin). Note the project ref. Create it with "Automatically expose new tables" **off** and "Enable automatic RLS" **on**; the migrations grant table access explicitly, including the `service_role` grants the Edge Function needs (`20260908091000_service_role_grants.sql`).
 2. **Apply the database schema:**
    ```bash
    supabase link --project-ref YOUR_PROJECT_REF
    supabase db push
    ```
-3. **Razorpay keys and the webhook.**
-   - Dashboard > Account & Settings > API Keys: generate a key pair. Note the Key ID and Key Secret.
-   - Dashboard > Account & Settings > Webhooks > Add: URL `https://YOUR_PROJECT_REF.supabase.co/functions/v1/razorpay-webhook`, event `payment.captured`, and type any strong secret string.
-   - Dashboard > Account & Settings > Payment Capture: set payments to capture automatically. Otherwise they sit as "authorized" and never become memberships.
-   Then:
+3. **Deploy the contact-form function.**
    ```bash
-   supabase secrets set RAZORPAY_KEY_ID=rzp_live_... RAZORPAY_KEY_SECRET=... RAZORPAY_WEBHOOK_SECRET=the-secret-you-typed-in-razorpay
-   supabase functions deploy razorpay-webhook --no-verify-jwt
-   supabase functions deploy create-order
-   supabase functions deploy verify-payment
    supabase functions deploy submit-enquiry --no-verify-jwt
    ```
    For the emailed copy of enquiries, create a free account at <https://resend.com>, verify your sending domain, and set:
    ```bash
    supabase secrets set RESEND_API_KEY=re_... ENQUIRY_EMAIL_TO=you@example.com ENQUIRY_EMAIL_FROM="Viral Yoga & Nature Cure <enquiries@yourdomain.in>"
    ```
-   Without these, enquiries still appear in admin; only the email copy is skipped. The same Resend account can be used as Supabase's SMTP provider in step 7.
-   Use `rzp_test_` keys first to try a payment with Razorpay's test cards, then switch to live keys.
+   Without these, enquiries still appear in admin; only the email copy is skipped.
 4. **Create the owner login.** In the Supabase dashboard: Authentication > Users > Add user, with your email and a password. Then give it admin rights by running this in the SQL editor (replace the email):
    ```sql
    update auth.users
@@ -180,34 +164,21 @@ What it gives you:
    where email = 'you@example.com';
    ```
    Sign out and in again if you were already signed in.
-5. **Sign-in email must carry a code.** Authentication > Email Templates > Magic Link. Make sure the body includes the code as well as the link, for example:
-   ```html
-   <h2>Sign in to Viral Yoga & Nature Cure</h2>
-   <p>Your sign-in code is <strong>{{ .Token }}</strong>. Type it on the page you were on, or open this link on this device: <a href="{{ .ConfirmationURL }}">Sign in</a>. Valid for one hour.</p>
-   ```
-   The link only signs in the device that opens it; the code signs in whichever device the student is using.
-6. **Allow the redirect URLs** for the student sign-in link: Authentication > URL Configuration. Site URL = your live site. Add `https://YOUR-SITE/my-membership/` and `http://localhost:4321/my-membership/` to Redirect URLs.
-7. **Website keys.** Copy `.env.example` to `.env`, fill in the project URL and the publishable key from Project Settings > API Keys, then `npm run build` and deploy `dist` as usual.
-8. **Student emails need a mail provider, and this is required for online payment.** Students must sign in by email before they can buy, and Supabase's built-in email sends only 2 messages an hour and only to your own team's addresses. Connect an SMTP provider under Authentication > SMTP Settings before launch. Resend and Brevo both have free tiers that are plenty. The admin login is not affected.
+5. **Switch off sign-ups.** Authentication > Sign In / Providers: turn off **Allow new users to sign up**. Only the owner needs an account. The admin page already refuses anyone else; with sign-ups off, nobody else can even create one.
+6. **Website keys.** The project URL and publishable key are in `src/data/site.ts` (`supabaseUrl`, `supabasePublishableKey`); both are public by design. To point a build at a different project, put `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env` (see `.env.example`) and run `npm run build`.
+
+No custom email (SMTP) setup is needed: nobody signs in by email. The owner signs in with a password.
 
 ### Things to know
 
-- **Free projects pause after 7 days without activity.** A paused project misses webhooks, so payments made while paused will not be recorded (Razorpay shows them in its own dashboard, so nothing is lost, but you would add them by hand). Opening the admin page once a week keeps it awake. The Pro plan (about $25/month) never pauses.
-- **Online fee.** To pass Razorpay's charge to the student, set `onlineFeePercent: 2.36` in `src/data/site.ts` and `ONLINE_FEE_PERCENT = 2.36` in `supabase/functions/_shared/payments.ts`, then rebuild the site and redeploy `create-order`. The student sees "₹5,000 + ₹118 online payment fee" before paying. Leave both at 0 to absorb the fee.
-- **The email address is what links a member to a login.** A member record with no email can never be seen by that member on the website; they sign in and get "no membership found". Adding the email later fixes it immediately and they do not need to sign in again. Collect emails at renewals, and ask for them once on WhatsApp. See `docs/STATUS.md` section 5d.
-- **Importing your existing members.** Admin > Import members takes a CSV with columns name, phone, email, plan, start_date, paid_by. Same phone = same member, and re-running a file never duplicates memberships.
-- **Prices live in two places.** If you change prices in `src/data/site.ts`, change them in `supabase/functions/_shared/payments.ts` too and redeploy all three functions. The server price is what gets charged. `tests/prices-agree.mjs` (run by the build checks) fails the build if the two disagree, or if a plan name is missing from `src/lib/supabase.ts` or the database.
-- **Attention list.** A payment the system could not match is kept in "Payments that need attention" on the admin page. Only payments that started from "Buy online" on the site are recorded automatically; a payment made through a Razorpay Payment Link or Button outside the site always lands here. "Add this payment" opens the form pre-filled and keeps the Razorpay payment id, so it cannot be added twice; "Done" clears it.
-- **Renewals.** A new membership starts the day after the member's latest one ends (or today, if none is running), online and at the desk, so paying early never loses days. The desk form suggests the date and says why; it can be changed.
-- **Who gets linked to which member.** A signed-in student is matched to the member record with the same email (set by import or in admin). A phone number typed at checkout never selects a member, and a number that already belongs to someone else is refused. So give walk-in members' emails to the admin page and they link themselves on first sign-in.
-- **Limits.** Contact form: 3 messages per phone and 5 per connection every 10 minutes. Orders: an unpaid order is reused for 30 minutes, at most 5 new orders per member per hour.
-- **What a member sees.** A plan paid for early says "Upcoming membership, starts on 1 Oct"; the running one says "Current membership"; once nothing is running the newest finished one says "Expired membership" in red with "Ended N days ago" and how to renew; older ones say "Earlier membership". `tests/browser-membership.mjs` checks this in a real browser (by hand, not in CI).
-- **Local testing** (optional, needs Docker): `supabase start`, then `bash tests/run.sh`. It resets the local database, seeds test accounts, starts a mock Razorpay/Resend server and runs `tests/functions.sh` (payments, webhook retries, member linking, rate limits, row level security). The same run happens in CI on every pull request. `supabase status` prints the local URL and keys.
+- **Free projects pause after 7 days without activity.** While paused, the contact form cannot save messages (it tells the visitor to use WhatsApp instead) and the admin page cannot load, until the project is restored from the Supabase dashboard. The public pages carry on. Opening the admin page once a week keeps it awake. With only enquiries stored, the Pro plan is not needed for the data; it would only remove the pausing.
+- **Limits.** Contact form: 3 messages per phone and 5 per connection every 10 minutes. The admin page shows the 50 newest open enquiries.
+- **Local testing** (optional, needs Docker): `supabase start`, then `bash tests/run.sh`. It resets the local database, seeds two test accounts, starts a mock Resend server and runs `tests/functions.sh` (enquiries, rate limits, row level security). The same run happens in CI on every pull request. `supabase status` prints the local URL and keys.
 
 ## Working with the code (branches)
 
 - `main` is what is live. Nobody commits to it directly.
-- `develop` is the working branch and the default on GitHub. New work happens on a short-lived branch off `develop`, named like `feat/member-import` or `fix/timetable-tabs`, and comes back through a pull request.
+- `develop` is the working branch and the default on GitHub. New work happens on a short-lived branch off `develop`, named like `feat/gallery-photos` or `fix/timetable-tabs`, and comes back through a pull request.
 - To release, open a pull request from `develop` into `main`. Merging it is the deploy trigger once Netlify is connected to the repository.
 - Every pull request runs the type check and the build automatically (see `.github/workflows/ci.yml`). Do not merge red.
 
@@ -226,23 +197,19 @@ src/
   data/site.ts          all editable content
   styles/global.css     colours, fonts, shared classes
   layouts/Base.astro    page shell, <head>, nav, footer
+  layouts/Legal.astro   shell for the privacy and terms pages
   components/           one file per section of the page
   pages/index.astro     the home page (assembles the sections)
+  pages/admin.astro     owner admin page: enquiries (needs Supabase)
   pages/thanks.astro    shown after the contact form is sent
   pages/404.astro       not-found page
+  lib/supabase.ts       browser client for the contact form and the admin page
 public/images/          your photos
-pages/admin.astro     owner admin page (needs Supabase)
-  pages/my-membership.astro  student page (needs Supabase)
-  lib/supabase.ts       browser client, shared helpers
-src/components/SignIn.astro  sign-in and sign-up form, one email field, no password
-supabase/migrations/    database schema (tables, policies)
-supabase/functions/_shared/payments.ts  plan prices, payment recording (shared)
-supabase/functions/create-order/      makes a Razorpay order for the signed-in student
-supabase/functions/verify-payment/    confirms checkout and records the membership
-supabase/functions/razorpay-webhook/  backup path: Razorpay tells us about every payment
+supabase/migrations/    database schema (the enquiries table and its rules)
 supabase/functions/submit-enquiry/    saves contact-form messages for the admin page, emails a copy
-tests/                  local integration tests for the functions (see "Local testing")
-docs/security-review-2026-09-08.md  external review findings and how each was fixed
+supabase/functions/_shared/phone.ts   phone number clean-up for the function
+tests/                  local integration tests (see "Local testing")
+docs/security-review-2026-09-08.md  external review findings from 8 September (history)
 netlify.toml            Netlify build settings
 vercel.json             Vercel build settings
 ```
