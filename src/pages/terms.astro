@@ -1,39 +1,20 @@
 ---
 import Legal from '../layouts/Legal.astro';
 import { site } from '../data/site';
-const plans = site.pricing.plans;
 ---
 <Legal
   title="Terms and conditions"
-  description={`The terms on which ${site.name} sells memberships and runs classes.`}
+  description={`The terms on which ${site.name} runs its classes.`}
 >
   <p>
-    These are the terms between you and {site.legal.entityName} when you buy a membership or attend a
-    class at our studios in Anjar and Adipur. Buying a membership means you accept them.
+    These are the terms between you and {site.legal.entityName} when you come to a class at our
+    studios in Anjar and Adipur. Coming to a class means you accept them.
   </p>
 
-  <h2>What we sell</h2>
-  <p>
-    In-person yoga classes at our two studios. A membership is a pass for a period of time, not a
-    fixed number of classes. Current plans and prices:
-  </p>
+  <h2>Classes</h2>
   <ul>
-    {plans.map((p) => <li>{p.name}, ₹{p.price.toLocaleString('en-IN')}</li>)}
-  </ul>
-  <p>
-    Prices are in Indian rupees and include any taxes that apply. We may change prices at any time,
-    but never for a membership you have already paid for.
-  </p>
-
-  <h2>How a membership works</h2>
-  <ul>
-    <li>One membership works at both studios. Come to whichever suits you that day.</li>
-    <li>
-      It runs by date, from the day it starts to the day it ends. Classes you miss are not carried
-      over and do not extend it.
-    </li>
-    <li>It belongs to you and cannot be shared with or transferred to anyone else.</li>
-    <li>Your first class is free, so you can try before you pay for anything.</li>
+    <li>We teach yoga in person, at our two studios in Anjar and Adipur.</li>
+    <li>Your first class is free, so you can try the studio before deciding anything.</li>
   </ul>
 
   <h2>Your health</h2>
@@ -65,35 +46,18 @@ const plans = site.pricing.plans;
   <ul>
     <li>Arrive a few minutes early. Latecomers may be asked to wait for a suitable moment to join.</li>
     <li>Phones on silent, please.</li>
-    <li>
-      We may ask someone to leave, without a refund, if their behaviour makes the class unsafe or
-      unpleasant for others.
-    </li>
+    <li>We may ask someone to leave if their behaviour makes the class unsafe or unpleasant for others.</li>
   </ul>
 
   <h2>Timetable changes and closures</h2>
   <p>
-    Timings can change and studios close on some public holidays. We will tell members on WhatsApp
-    where we reasonably can. If we have to cancel classes for a long period, talk to us and we will
-    put it right.
-  </p>
-
-  <h2>Payments</h2>
-  <p>
-    You can pay in cash at the studio, by UPI, or online through Razorpay when that is switched on.
-    A membership starts once the payment reaches us. If a payment fails or is reversed, the
-    membership does not start.
-  </p>
-
-  <h2>Refunds</h2>
-  <p>
-    Set out on the <a href="/refunds/">refunds and cancellation page</a>, which forms part of these
-    terms.
+    Timings can change and studios close on some public holidays. We will tell students on WhatsApp
+    where we reasonably can.
   </p>
 
   <h2>This website</h2>
   <p>
-    We try to keep the timetable and prices on this site correct, but mistakes happen. If a price
+    We try to keep the timetable and fees on this site correct, but mistakes happen. If a fee shown
     here is obviously wrong, we are not obliged to honour it. Photographs and text on this site
     belong to us; please do not copy them.
   </p>

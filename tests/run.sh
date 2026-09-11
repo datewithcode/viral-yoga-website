@@ -1,6 +1,6 @@
 #!/bin/bash
 # Full local integration run: resets the local Supabase database, seeds test
-# users, starts the mock Razorpay/Resend server and the functions, then runs
+# users, starts the mock Resend server and the functions, then runs
 # tests/functions.sh. Needs Docker and the Supabase CLI; `supabase start` must
 # already be running (CI starts it).
 #
@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 
 supabase db reset --local >/dev/null
 
-node tests/mock-razorpay.mjs >/tmp/vy-mock.log 2>&1 &
+node tests/mock-resend.mjs >/tmp/vy-mock.log 2>&1 &
 MOCK=$!
 supabase functions serve --env-file tests/functions.env >/tmp/vy-serve.log 2>&1 &
 SERVE=$!

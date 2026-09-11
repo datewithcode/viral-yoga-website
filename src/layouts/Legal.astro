@@ -1,7 +1,6 @@
 ---
-// Shared shell for the policy pages. Razorpay's compliance review reads these,
-// and so do students, so they are written in plain sentences rather than in the
-// usual boilerplate.
+// Shared shell for the policy pages. Students read these, so they are written
+// in plain sentences rather than in the usual boilerplate.
 import Base from './Base.astro';
 import { site } from '../data/site';
 
@@ -26,7 +25,6 @@ const { title, description } = Astro.props;
         <p class="mt-4">
           <a class="underline underline-offset-4" href="/privacy/">Privacy</a>{' · '}
           <a class="underline underline-offset-4" href="/terms/">Terms</a>{' · '}
-          <a class="underline underline-offset-4" href="/refunds/">Refunds and cancellation</a>{' · '}
           <a class="underline underline-offset-4" href="/">Back to the site</a>
         </p>
       </div>

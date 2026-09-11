@@ -39,8 +39,8 @@ jobs:
           done
 
   # Runs the migrations on a fresh local Supabase, serves the functions with the
-  # mock Razorpay/Resend server, and runs tests/functions.sh (payments,
-  # webhook retries, member linking, rate limits, row level security).
+  # mock Resend server, and runs tests/functions.sh (enquiries, rate limits,
+  # row level security, and that the removed tables stay gone).
   functions-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20

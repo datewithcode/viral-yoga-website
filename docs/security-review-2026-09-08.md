@@ -1,5 +1,7 @@
 # Security and bug review, 8 September 2026: findings and fixes
 
+> Payments and memberships were removed from the website on 11 September 2026. The code this document describes is kept on branch `main_backup_payment` and tag `backup-2026-09-11`.
+
 External review of `main` bf82773 / `develop` b57e044 (same tree). Six findings plus a CI gap. All fixed on branch `fix/security-review`, proven by `tests/functions.sh` (51 cases) which now runs in CI on every pull request.
 
 **Exposure at the time of the review.** Online payment is switched off and the Razorpay keys are not set, so `create-order`, `verify-payment` and `razorpay-webhook` refused every call before reaching the flawed code. F01, F02, F04 and F05 were latent. F03 (contact-form spam) and F06 (student page) were live; neither exposes data or money.
