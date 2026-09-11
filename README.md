@@ -169,7 +169,7 @@ What it gives you:
    ```
    For the emailed copy of enquiries, create a free account at <https://resend.com>, verify your sending domain, and set:
    ```bash
-   supabase secrets set RESEND_API_KEY=re_... ENQUIRY_EMAIL_TO=you@example.com ENQUIRY_EMAIL_FROM="Viral Yoga <enquiries@yourdomain.in>"
+   supabase secrets set RESEND_API_KEY=re_... ENQUIRY_EMAIL_TO=you@example.com ENQUIRY_EMAIL_FROM="Viral Yoga & Nature Cure <enquiries@yourdomain.in>"
    ```
    Without these, enquiries still appear in admin; only the email copy is skipped. The same Resend account can be used as Supabase's SMTP provider in step 7.
    Use `rzp_test_` keys first to try a payment with Razorpay's test cards, then switch to live keys.
@@ -182,7 +182,7 @@ What it gives you:
    Sign out and in again if you were already signed in.
 5. **Sign-in email must carry a code.** Authentication > Email Templates > Magic Link. Make sure the body includes the code as well as the link, for example:
    ```html
-   <h2>Sign in to Viral Yoga</h2>
+   <h2>Sign in to Viral Yoga & Nature Cure</h2>
    <p>Your sign-in code is <strong>{{ .Token }}</strong>. Type it on the page you were on, or open this link on this device: <a href="{{ .ConfirmationURL }}">Sign in</a>. Valid for one hour.</p>
    ```
    The link only signs in the device that opens it; the code signs in whichever device the student is using.
