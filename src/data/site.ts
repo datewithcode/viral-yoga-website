@@ -214,26 +214,10 @@ export const site = {
     { day: 'Sun', time: '6:30 – 7:30 am', className: 'Hatha Yoga', location: 'anjar' },
   ] satisfies Session[],
 
-  // --- Membership plans & payments ----------------------------------------------
+  // --- Fees ------------------------------------------------------------------------
+  // A price list for information only. Fees are paid at the studio.
   pricing: {
-    intro: 'One membership works at both studios. Sign in with your email to pay online and see your days remaining any time, or pay by UPI and send us a screenshot.',
-    // Online payment through Razorpay. Keep false until Razorpay keys are set on the
-    // server (rollout step 5). While false, the site shows only direct UPI and the
-    // membership page shows days remaining without a Buy panel.
-    onlinePaymentsEnabled: false,
-    // Set true once a custom email provider (Resend) is connected in Supabase and
-    // the sign-in email template includes {{ .Token }}. Until then the email has
-    // only a link, so the page must not ask for a code.
-    signInEmailHasCode: false,
-    // Online fee added on top of the plan price when paying through Razorpay, in percent.
-    // 0 = studio absorbs Razorpay's charge. 2.36 = pass Razorpay's 2% + 18% GST to the student.
-    // Must match ONLINE_FEE_PERCENT in supabase/functions/_shared/payments.ts.
-    onlineFeePercent: 0,
-    // UPI: any UPI ID that receives money (GPay, PhonePe, Paytm, bank app).
-    upiId: 'yourstudio@upi',
-    upiPayeeName: 'Viral Yoga',
-    // Shown below the pay buttons. Keep it short.
-    afterPayment: 'After paying, send the payment screenshot on WhatsApp with your name and preferred batch. Your membership starts from your first class.',
+    intro: 'One plan covers classes at both studios. Fees are paid at the studio when you join, after your free trial class.',
     plans: [
       { name: '1 month', price: 2000, note: 'Good for trying us out.' },
       { name: '3 months', price: 5000, note: 'Save ₹1,000 against monthly.' },
@@ -244,15 +228,10 @@ export const site = {
 
   // --- Page text ---------------------------------------------------------------
   // --- Legal pages ---------------------------------------------------------------
-  // Razorpay's compliance review checks that these exist and match the business.
-  // CONFIRM every line of /privacy, /terms and /refunds before submitting KYC.
+  // CONFIRM every line of /privacy and /terms before launch.
   legal: {
     entityName: 'Viral Yoga & Nature Cure',   // the name the business is registered under
-    updated: '8 September 2026',
-    // Days after purchase in which a refund can be asked for. Your policy, your call.
-    refundWindowDays: 7,
-    // Working days for the money to reach the payer once a refund is approved.
-    refundProcessingDays: '5 to 7',
+    updated: '11 September 2026',
   },
 
   // --- Google reviews ----------------------------------------------------------
@@ -315,20 +294,20 @@ export const site = {
       a: 'Ask us on WhatsApp for the current timings, and we will tell you which batches suit you.',
     },
     {
-      q: 'Does my membership work at both studios?',
-      a: 'Yes. One membership covers Anjar and Adipur. Come to whichever is closer that day.',
+      q: 'Can I come to both studios?',
+      a: 'Yes. One plan covers Anjar and Adipur. Come to whichever is closer that day.',
     },
     {
-      q: 'Can I pause my membership if I travel?',
+      q: 'Can I pause my plan if I travel?',
       a: 'Talk to us before you go and we will work something out.',
     },
     {
-      q: 'How do I pay?',
-      a: 'Cash or UPI at the studio, or UPI from the pricing section of this website. Send us the screenshot on WhatsApp and we will add it to your membership.',
+      q: 'How do I join?',
+      a: 'Come for your free trial class first. If you like it, you join at the studio and pay the fees there.',
     },
     {
       q: 'What happens if I miss classes?',
-      a: 'Nothing. Come back when you can. Memberships run by date rather than by class count, so a missed week does not need making up.',
+      a: 'Nothing. Come back when you can. Plans run by date rather than by class count, so a missed week does not need making up.',
     },
   ] as Faq[],
 
@@ -345,7 +324,7 @@ export const site = {
     aboutImageCaption: 'Morning batch, Anjar studio.',
     classesIntro: 'Every class is taught in person at both studios. If you are new, start with the beginners course or any Hatha class and tell the teacher it is your first time.',
     scheduleIntro: 'Walk in for any class. No booking needed for regular batches.',
-    locationsIntro: 'Your membership works at both. Come to whichever is closer that day.',
+    locationsIntro: 'One plan covers both. Come to whichever is closer that day.',
     benefitsHeading: 'Why people come to us',
     benefitsCta: 'Your first class is free. Come and see.',
     faqHeading: 'Questions people ask',
@@ -362,42 +341,42 @@ export const site = {
       quote: 'I started at 52 with a stiff back and no confidence. A year later I can sit on the floor with my grandchildren again.',
       name: 'Hansaben P.',
       age: '53',
-      since: 'Member for 1 year',
+      since: 'With us for 1 year',
       detail: 'Anjar, Yoga for seniors',
     },
     {
       quote: 'The 6 am batch before work has become the best part of my day. The teachers actually correct your posture.',
       name: 'Rohan M.',
       age: '31',
-      since: 'Member for 2 years',
+      since: 'With us for 2 years',
       detail: 'Adipur, Hatha Yoga',
     },
     {
       quote: 'After three months of daily breathing practice I sleep through the night again, which I had given up on.',
       name: 'Jayesh S.',
       age: '46',
-      since: 'Member for 8 months',
+      since: 'With us for 8 months',
       detail: 'Anjar, Pranayama & meditation',
     },
     {
       quote: 'I joined the beginners course with zero flexibility and a lot of doubt. Four weeks later I look forward to every class.',
       name: 'Priya D.',
       age: '24',
-      since: 'Member for 4 months',
+      since: 'With us for 4 months',
       detail: 'Adipur, Beginners course',
     },
     {
       quote: 'Power yoga at 6:30 pm is my stress release after the shop closes. Same batch, same people, two years now.',
       name: 'Mahesh K.',
       age: '28',
-      since: 'Member for 2 years',
+      since: 'With us for 2 years',
       detail: 'Adipur, Power yoga',
     },
     {
       quote: 'After my knee surgery the therapeutic sessions got me walking without pain. Slow, careful, and never pushed.',
       name: 'Kalpana B.',
       age: '61',
-      since: 'Member for 6 months',
+      since: 'With us for 6 months',
       detail: 'Anjar, Therapeutic yoga',
     },
   ],

@@ -1,7 +1,5 @@
 ---
 import { site } from '../data/site';
-// Before online payment is on, only existing members can do anything after signing in.
-const signinLabel = site.pricing.onlinePaymentsEnabled ? 'Sign in / Register' : 'Sign in';
 
 // A link must not outlive the section it points at. Instructor.astro renders
 // nothing while its achievements list is empty, which is exactly what the setup
@@ -16,11 +14,6 @@ const links = [
   ...(hasTeacher ? [{ href: '/#teacher', label: 'Teacher' }] : []),
   { href: '/#contact', label: 'Contact' },
 ];
-
-// Passed to the inline greeting below, so it needs no bundling and can run
-// before the first paint. Comes from lib/supabase.ts so it can never disagree
-// with the key supabase-js actually writes.
-import { projectRef } from '../lib/supabase';
 ---
 <header class="sticky top-0 z-50 border-b border-ink/10 bg-chalk/90 backdrop-blur">
   <div class="container-site flex h-16 items-center justify-between gap-6">
@@ -41,7 +34,6 @@ import { projectRef } from '../lib/supabase';
       {links.map((l) => (
         <a href={l.href} class="text-[0.95rem] text-ink-soft hover:text-ink">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost !py-2.5 !px-5 text-sm" data-signin data-signin-default={signinLabel}>{signinLabel}</a>
       <a href="/#contact" class="btn-primary !py-2.5 !px-5 text-sm">{site.copy.heroPrimaryButton}</a>
     </nav>
 
@@ -64,41 +56,9 @@ import { projectRef } from '../lib/supabase';
       {links.map((l) => (
         <a href={l.href} class="py-3 text-lg text-ink border-b border-ink/5 last:border-0">{l.label}</a>
       ))}
-      <a href="/my-membership/" class="btn-ghost mt-4" data-signin data-signin-default={signinLabel}>{signinLabel}</a>
-      <a href="/#contact" class="btn-primary mt-3 mb-2">{site.copy.heroPrimaryButton}</a>
+      <a href="/#contact" class="btn-primary mt-4 mb-2">{site.copy.heroPrimaryButton}</a>
     </div>
   </nav>
-
-<script is:inline define:vars={{ projectRef }}>
-  // Show the signed-in state in the header without loading the Supabase library
-  // on every page: the session is read from the storage key supabase-js uses.
-  // Inline and unbundled on purpose, so the label is already right on the first
-  // paint instead of flicking from "Sign in" to the member's name a moment later.
-  try {
-    var raw = projectRef ? localStorage.getItem('sb-' + projectRef + '-auth-token') : null;
-    var session = raw ? JSON.parse(raw) : null;
-    // A refresh token means supabase-js can restore the session by itself, so an
-    // access token that expired an hour ago does not mean the member signed out.
-    if (session && session.refresh_token) {
-      // Use the cached name only if it was stored for the account signed in now.
-      // Otherwise the studio's shared computer greets whoever used it last.
-      var name = '';
-      try {
-        var cached = JSON.parse(localStorage.getItem('vy-member') || 'null');
-        var uid = session.user && session.user.id;
-        if (cached && uid && cached.id === uid) name = String(cached.name || '').trim().split(' ')[0];
-      } catch (e) {}
-      // Same four states as syncHeader() in lib/supabase.ts. Keep them in step.
-      var staff = session.user && session.user.app_metadata && session.user.app_metadata.role === 'staff';
-      var label = staff ? 'Admin' : (name ? 'Hi, ' + name : 'Your membership');
-      document.querySelectorAll('[data-signin]').forEach(function (a) {
-        a.textContent = label;
-        a.title = label;
-        if (staff) a.href = '/admin/';
-      });
-    }
-  } catch (e) {}
-</script>
 
 <script>
   const toggle = document.getElementById('nav-toggle');

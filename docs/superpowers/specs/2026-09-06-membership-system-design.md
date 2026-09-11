@@ -1,5 +1,7 @@
 # Membership system design (2026-09-06)
 
+> Payments and memberships were removed from the website on 11 September 2026. The code this document describes is kept on branch `main_backup_payment` and tag `backup-2026-09-11`.
+
 Status: approved by the owner in conversation; implementation in progress.
 
 ## Goal
